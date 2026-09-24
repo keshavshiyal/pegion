@@ -8,70 +8,87 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+private val LightColorScheme = lightColorScheme(
+    primary = MdLightPrimary,
+    onPrimary = MdLightOnPrimary,
+    primaryContainer = MdLightPrimaryContainer,
+    onPrimaryContainer = MdLightOnPrimaryContainer,
+    secondary = MdLightSecondary,
+    onSecondary = MdLightOnSecondary,
+    secondaryContainer = MdLightSecondaryContainer,
+    onSecondaryContainer = MdLightOnSecondaryContainer,
+    tertiary = MdLightTertiary,
+    onTertiary = MdLightOnTertiary,
+    tertiaryContainer = MdLightTertiaryContainer,
+    onTertiaryContainer = MdLightOnTertiaryContainer,
+    error = MdLightError,
+    onError = MdLightOnError,
+    errorContainer = MdLightErrorContainer,
+    onErrorContainer = MdLightOnErrorContainer,
+    background = MdLightBackground,
+    onBackground = MdLightOnBackground,
+    surface = MdLightSurface,
+    onSurface = MdLightOnSurface,
+    surfaceVariant = MdLightSurfaceVariant,
+    onSurfaceVariant = MdLightOnSurfaceVariant,
+    outline = MdLightOutline,
+    outlineVariant = MdLightOutlineVariant
+)
+
 private val DarkColorScheme = darkColorScheme(
-    primary = PigeonPrimaryDark,
-    onPrimary = PigeonOnPrimaryDark,
-    primaryContainer = PigeonPrimaryContainerDark,
-    onPrimaryContainer = PigeonOnPrimaryContainerDark,
-    secondary = PigeonSecondaryDark,
-    onSecondary = PigeonOnSecondaryDark,
-    secondaryContainer = PigeonSecondaryContainerDark,
-    onSecondaryContainer = PigeonOnSecondaryContainerDark,
-    tertiary = PigeonTertiaryDark,
-    onTertiary = PigeonOnTertiaryDark,
-    tertiaryContainer = PigeonTertiaryContainerDark,
-    onTertiaryContainer = PigeonOnTertiaryContainerDark,
-    background = DarkBackground,
-    onBackground = Color(0xFFE2E2E6),
-    surface = DarkSurface,
-    onSurface = Color(0xFFE2E2E6),
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = Color(0xFFBCC8CF)
+    primary = MdDarkPrimary,
+    onPrimary = MdDarkOnPrimary,
+    primaryContainer = MdDarkPrimaryContainer,
+    onPrimaryContainer = MdDarkOnPrimaryContainer,
+    secondary = MdDarkSecondary,
+    onSecondary = MdDarkOnSecondary,
+    secondaryContainer = MdDarkSecondaryContainer,
+    onSecondaryContainer = MdDarkOnSecondaryContainer,
+    tertiary = MdDarkTertiary,
+    onTertiary = MdDarkOnTertiary,
+    tertiaryContainer = MdDarkTertiaryContainer,
+    onTertiaryContainer = MdDarkOnTertiaryContainer,
+    error = MdDarkError,
+    onError = MdDarkOnError,
+    errorContainer = MdDarkErrorContainer,
+    onErrorContainer = MdDarkOnErrorContainer,
+    background = MdDarkBackground,
+    onBackground = MdDarkOnBackground,
+    surface = MdDarkSurface,
+    onSurface = MdDarkOnSurface,
+    surfaceVariant = MdDarkSurfaceVariant,
+    onSurfaceVariant = MdDarkOnSurfaceVariant,
+    outline = MdDarkOutline,
+    outlineVariant = MdDarkOutlineVariant
 )
 
 private val AmoledColorScheme = darkColorScheme(
-    primary = PigeonPrimaryDark,
-    onPrimary = PigeonOnPrimaryDark,
-    primaryContainer = PigeonPrimaryContainerDark,
-    onPrimaryContainer = PigeonOnPrimaryContainerDark,
-    secondary = PigeonSecondaryDark,
-    onSecondary = PigeonOnSecondaryDark,
-    secondaryContainer = PigeonSecondaryContainerDark,
-    onSecondaryContainer = PigeonOnSecondaryContainerDark,
-    tertiary = PigeonTertiaryDark,
-    onTertiary = PigeonOnTertiaryDark,
-    tertiaryContainer = PigeonTertiaryContainerDark,
-    onTertiaryContainer = PigeonOnTertiaryContainerDark,
-    background = AmoledBackground,
-    onBackground = Color(0xFFE2E2E6),
-    surface = AmoledSurface,
-    onSurface = Color(0xFFE2E2E6),
-    surfaceVariant = AmoledSurfaceVariant,
-    onSurfaceVariant = Color(0xFF9FB2BD)
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = PigeonPrimaryLight,
-    onPrimary = PigeonOnPrimaryLight,
-    primaryContainer = PigeonPrimaryContainerLight,
-    onPrimaryContainer = PigeonOnPrimaryContainerLight,
-    secondary = PigeonSecondaryLight,
-    onSecondary = PigeonOnSecondaryLight,
-    secondaryContainer = PigeonSecondaryContainerLight,
-    onSecondaryContainer = PigeonOnSecondaryContainerLight,
-    tertiary = PigeonTertiaryLight,
-    onTertiary = PigeonOnTertiaryLight,
-    tertiaryContainer = PigeonTertiaryContainerLight,
-    onTertiaryContainer = PigeonOnTertiaryContainerLight,
-    background = LightBackground,
-    onBackground = Color(0xFF191C1E),
-    surface = LightSurface,
-    onSurface = Color(0xFF191C1E),
-    surfaceVariant = LightSurfaceVariant,
-    onSurfaceVariant = Color(0xFF40484C)
+    primary = MdDarkPrimary,
+    onPrimary = MdDarkOnPrimary,
+    primaryContainer = MdDarkPrimaryContainer,
+    onPrimaryContainer = MdDarkOnPrimaryContainer,
+    secondary = MdDarkSecondary,
+    onSecondary = MdDarkOnSecondary,
+    secondaryContainer = MdDarkSecondaryContainer,
+    onSecondaryContainer = MdDarkOnSecondaryContainer,
+    tertiary = MdDarkTertiary,
+    onTertiary = MdDarkOnTertiary,
+    tertiaryContainer = MdDarkTertiaryContainer,
+    onTertiaryContainer = MdDarkOnTertiaryContainer,
+    error = MdDarkError,
+    onError = MdDarkOnError,
+    errorContainer = MdDarkErrorContainer,
+    onErrorContainer = MdDarkOnErrorContainer,
+    background = MdAmoledBackground,
+    onBackground = MdDarkOnBackground,
+    surface = MdAmoledSurface,
+    onSurface = MdDarkOnSurface,
+    surfaceVariant = MdAmoledSurfaceVariant,
+    onSurfaceVariant = MdDarkOnSurfaceVariant,
+    outline = MdDarkOutline,
+    outlineVariant = MdDarkOutlineVariant
 )
 
 enum class AppThemeMode {
@@ -105,6 +122,7 @@ fun PegionTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = Shapes,
         content = content
     )
 }

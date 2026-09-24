@@ -1,7 +1,7 @@
 package com.example.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,20 +51,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.entity.DownloadEntity
+import com.example.download.model.ChecksumType
 import com.example.download.model.DownloadPriority
 import com.example.download.model.DownloadStatus
+import com.example.ui.theme.PegionTheme
 import com.example.ui.theme.StatusCompleted
+import com.example.ui.theme.StatusCompletedContainer
 import com.example.ui.theme.StatusDownloading
+import com.example.ui.theme.StatusDownloadingContainer
 import com.example.ui.theme.StatusFailed
+import com.example.ui.theme.StatusFailedContainer
 import com.example.ui.theme.StatusPaused
+import com.example.ui.theme.StatusPausedContainer
 import com.example.ui.theme.StatusQueued
+import com.example.ui.theme.StatusQueuedContainer
+import java.io.File
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -86,18 +96,25 @@ fun DownloadCard(
 
     val animatedProgress by animateFloatAsState(
         targetValue = (download.progress / 100f).coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 350),
         label = "progress"
     )
 
-    val (statusColor, statusLabel) = when (download.status) {
-        DownloadStatus.PENDING -> StatusQueued to "Queued"
-        DownloadStatus.DOWNLOADING -> StatusDownloading to "Downloading"
-        DownloadStatus.PAUSED -> StatusPaused to "Paused"
-        DownloadStatus.COMPLETED -> StatusCompleted to "Completed"
-        DownloadStatus.FAILED -> StatusFailed to "Failed"
-        DownloadStatus.CANCELLED -> MaterialTheme.colorScheme.outline to "Cancelled"
+    // Semantic status styling with WCAG AA compliance
+    val (statusFgColor, statusBgColor, statusLabel) = when (download.status) {
+        DownloadStatus.PENDING -> Triple(StatusQueued, StatusQueuedContainer, "Queued")
+        DownloadStatus.DOWNLOADING -> Triple(StatusDownloading, StatusDownloadingContainer, "Downloading")
+        DownloadStatus.PAUSED -> Triple(StatusPaused, StatusPausedContainer, "Paused")
+        DownloadStatus.COMPLETED -> Triple(StatusCompleted, StatusCompletedContainer, "Completed")
+        DownloadStatus.FAILED -> Triple(StatusFailed, StatusFailedContainer, "Failed")
+        DownloadStatus.CANCELLED -> Triple(
+            MaterialTheme.colorScheme.onSurfaceVariant,
+            MaterialTheme.colorScheme.surfaceVariant,
+            "Cancelled"
+        )
     }
 
+    // Elevated Card with subtle elevation and clean surface container
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -106,33 +123,36 @@ fun DownloadCard(
                 onClick = onClick,
                 onLongClick = { menuExpanded = true }
             ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp
+        )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header Row: File icon, Name, Priority chip, Status chip, More menu
+            // Header Row: File icon, Name, Status Chip, More menu
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // File Type Icon Box
+                // File Type Icon Surface
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = statusColor.copy(alpha = 0.15f),
+                    color = statusBgColor,
                     modifier = Modifier.size(44.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = getFileIcon(download.fileName),
                             contentDescription = "File Type",
-                            tint = statusColor,
+                            tint = statusFgColor,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -143,23 +163,34 @@ fun DownloadCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = download.fileName,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.1.sp
+                        ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Priority indicator if not Normal
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        // Status Chip using secondaryContainer style
+                        StatusChip(
+                            label = statusLabel,
+                            fgColor = statusFgColor,
+                            bgColor = statusBgColor
+                        )
+
+                        // Priority chip if non-normal
                         if (download.priority != DownloadPriority.NORMAL) {
-                            PriorityBadge(download.priority)
-                            Spacer(modifier = Modifier.width(6.dp))
+                            PriorityChip(priority = download.priority)
                         }
-                        StatusBadge(label = statusLabel, color = statusColor)
                     }
                 }
 
-                // Dropdown Menu Button
+                // Dropdown Menu
                 Box {
                     IconButton(
                         onClick = { menuExpanded = true },
@@ -206,29 +237,29 @@ fun DownloadCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Progress Bar (when downloading, queued, or paused)
+            // Thicker, expressive LinearProgressIndicator with StrokeCap.Round
             if (download.status != DownloadStatus.COMPLETED) {
                 LinearProgressIndicator(
                     progress = { animatedProgress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp)),
-                    color = statusColor,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = statusFgColor,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    strokeCap = StrokeCap.Round
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
-            // Metrics & Status Information Row
+            // Info Row: Left (Downloaded / Total (Percentage)), Right (Speed • ETA)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Size & percentage
                 val sizeText = formatBytes(download.downloadedBytes) +
                         if (download.fileSize > 0) " / " + formatBytes(download.fileSize) else ""
 
@@ -240,18 +271,22 @@ fun DownloadCard(
                     "—"
                 }
 
-                Column {
+                Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
-                        text = "$sizeText  ($progressText)",
+                        text = "$sizeText ($progressText)",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
 
                     if (download.status == DownloadStatus.DOWNLOADING && download.speed > 0) {
                         Text(
                             text = "${formatSpeed(download.speed)} • ETA ${formatEta(download.eta)}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                            color = statusColor
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = statusFgColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     } else if (download.errorMessage != null && download.status == DownloadStatus.FAILED) {
                         Text(
@@ -264,88 +299,118 @@ fun DownloadCard(
                     }
                 }
 
-                // Action Buttons based on status
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Actions: FilledTonalIconButton with >= 48dp touch bounds
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     when (download.status) {
                         DownloadStatus.DOWNLOADING -> {
                             FilledTonalIconButton(
                                 onClick = onPause,
-                                modifier = Modifier.size(36.dp),
+                                modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = StatusPaused.copy(alpha = 0.2f),
-                                    contentColor = StatusPaused
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                             ) {
-                                Icon(Icons.Default.Pause, contentDescription = "Pause", modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.Pause,
+                                    contentDescription = "Pause",
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
                             FilledTonalIconButton(
                                 onClick = onCancel,
-                                modifier = Modifier.size(36.dp),
+                                modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                                    contentColor = MaterialTheme.colorScheme.error
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
                                 )
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = "Cancel", modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Cancel",
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
                         DownloadStatus.PAUSED, DownloadStatus.PENDING -> {
                             FilledTonalIconButton(
                                 onClick = onResume,
-                                modifier = Modifier.size(36.dp),
+                                modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = statusColor.copy(alpha = 0.2f),
-                                    contentColor = statusColor
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             ) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = "Resume", modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.PlayArrow,
+                                    contentDescription = "Resume",
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
                             FilledTonalIconButton(
                                 onClick = onCancel,
-                                modifier = Modifier.size(36.dp),
+                                modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                                    contentColor = MaterialTheme.colorScheme.error
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
                                 )
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = "Cancel", modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Cancel",
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
                         DownloadStatus.FAILED, DownloadStatus.CANCELLED -> {
                             FilledTonalIconButton(
                                 onClick = onRetry,
-                                modifier = Modifier.size(36.dp),
+                                modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.primary
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             ) {
-                                Icon(Icons.Default.Refresh, contentDescription = "Retry", modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = "Retry",
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
                             FilledTonalIconButton(
                                 onClick = onDelete,
-                                modifier = Modifier.size(36.dp),
+                                modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                                    contentColor = MaterialTheme.colorScheme.error
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
                                 )
                             ) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
                         DownloadStatus.COMPLETED -> {
                             FilledTonalIconButton(
                                 onClick = onOpen,
-                                modifier = Modifier.size(36.dp),
+                                modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = StatusCompleted.copy(alpha = 0.2f),
+                                    containerColor = StatusCompletedContainer,
                                     contentColor = StatusCompleted
                                 )
                             ) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = "Open", modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = "Open File",
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
                     }
@@ -356,40 +421,77 @@ fun DownloadCard(
 }
 
 @Composable
-fun StatusBadge(label: String, color: Color) {
+fun StatusChip(
+    label: String,
+    fgColor: Color,
+    bgColor: Color,
+    modifier: Modifier = Modifier
+) {
     Surface(
-        shape = CircleShape,
-        color = color.copy(alpha = 0.15f),
-        contentColor = color
+        shape = RoundedCornerShape(8.dp),
+        color = bgColor,
+        contentColor = fgColor,
+        modifier = modifier
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.sp
             ),
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
         )
     }
 }
 
 @Composable
-fun PriorityBadge(priority: DownloadPriority) {
-    val (color, text) = when (priority) {
-        DownloadPriority.HIGH -> MaterialTheme.colorScheme.error to "High"
-        DownloadPriority.LOW -> MaterialTheme.colorScheme.outline to "Low"
-        DownloadPriority.NORMAL -> MaterialTheme.colorScheme.secondary to "Normal"
+fun StatusBadge(label: String, color: Color, modifier: Modifier = Modifier) {
+    StatusChip(
+        label = label,
+        fgColor = color,
+        bgColor = color.copy(alpha = 0.15f),
+        modifier = modifier
+    )
+}
+
+@Composable
+fun PriorityBadge(priority: DownloadPriority, modifier: Modifier = Modifier) {
+    PriorityChip(priority = priority, modifier = modifier)
+}
+
+@Composable
+fun PriorityChip(
+    priority: DownloadPriority,
+    modifier: Modifier = Modifier
+) {
+    val (bgColor, fgColor, text) = when (priority) {
+        DownloadPriority.HIGH -> Triple(
+            MaterialTheme.colorScheme.errorContainer,
+            MaterialTheme.colorScheme.onErrorContainer,
+            "High"
+        )
+        DownloadPriority.LOW -> Triple(
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant,
+            "Low"
+        )
+        DownloadPriority.NORMAL -> Triple(
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.onSecondaryContainer,
+            "Normal"
+        )
     }
     Surface(
-        shape = CircleShape,
-        color = color.copy(alpha = 0.12f),
-        contentColor = color
+        shape = RoundedCornerShape(8.dp),
+        color = bgColor,
+        contentColor = fgColor,
+        modifier = modifier
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 10.sp
             ),
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
         )
@@ -441,5 +543,69 @@ fun formatEta(seconds: Long): String {
         h > 0 -> "${h}h ${m}m"
         m > 0 -> "${m}m ${s}s"
         else -> "${s}s"
+    }
+}
+
+@Preview(name = "Download Card Light", showBackground = true)
+@Composable
+private fun DownloadCardLightPreview() {
+    PegionTheme(dynamicColor = false) {
+        DownloadCard(
+            download = DownloadEntity(
+                id = 1L,
+                url = "https://example.com/ubuntu-desktop.iso",
+                fileName = "ubuntu-24.04-desktop-amd64.iso",
+                filePath = "/storage/downloads/ubuntu.iso",
+                fileSize = 4800000000L,
+                downloadedBytes = 1200000000L,
+                status = DownloadStatus.DOWNLOADING,
+                progress = 25.0f,
+                speed = 2450000L,
+                eta = 1469L
+            ),
+            onClick = {},
+            onPause = {},
+            onResume = {},
+            onCancel = {},
+            onRetry = {},
+            onDelete = {},
+            onRename = {},
+            onOpen = {},
+            onShare = {},
+            onCopyUrl = {},
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Preview(name = "Download Card Dark", showBackground = true)
+@Composable
+private fun DownloadCardDarkPreview() {
+    PegionTheme(themeMode = com.example.ui.theme.AppThemeMode.DARK, dynamicColor = false) {
+        DownloadCard(
+            download = DownloadEntity(
+                id = 2L,
+                url = "https://example.com/archive.zip",
+                fileName = "project_assets_highres.zip",
+                filePath = "/storage/downloads/project.zip",
+                fileSize = 250000000L,
+                downloadedBytes = 250000000L,
+                status = DownloadStatus.COMPLETED,
+                progress = 100.0f,
+                speed = 0L,
+                eta = 0L
+            ),
+            onClick = {},
+            onPause = {},
+            onResume = {},
+            onCancel = {},
+            onRetry = {},
+            onDelete = {},
+            onRename = {},
+            onOpen = {},
+            onShare = {},
+            onCopyUrl = {},
+            modifier = Modifier.padding(16.dp)
+        )
     }
 }

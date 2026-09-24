@@ -7,6 +7,12 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +20,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,31 +36,31 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -67,19 +72,20 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.DownloadEntity
 import com.example.download.model.DownloadFilter
+import com.example.download.model.DownloadPriority
 import com.example.download.model.DownloadSortOrder
 import com.example.download.model.DownloadStatus
 import com.example.ui.components.AddDownloadDialog
@@ -91,7 +97,8 @@ import com.example.ui.components.EmptyStateView
 import com.example.ui.components.RenameDialog
 import com.example.ui.components.formatBytes
 import com.example.ui.components.formatSpeed
-import kotlinx.coroutines.launch
+import com.example.ui.theme.AppThemeMode
+import com.example.ui.theme.PegionTheme
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -103,7 +110,6 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     val downloads by viewModel.downloads.collectAsStateWithLifecycle()
     val summary by viewModel.summaryMetrics.collectAsStateWithLifecycle()
@@ -117,7 +123,19 @@ fun HomeScreen(
     var addDialogInitialUrl by remember { mutableStateOf("") }
     var itemToDelete by remember { mutableStateOf<DownloadEntity?>(null) }
     var itemToRename by remember { mutableStateOf<DownloadEntity?>(null) }
-    var showSortMenu by remember { mutableStateOf(false) }
+    var showOptionsMenu by remember { mutableStateOf(false) }
+
+    // Pulsing animation for FAB when active downloads exist
+    val infiniteTransition = rememberInfiniteTransition(label = "fab_pulse")
+    val fabPulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (summary.activeCount > 0) 1.05f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fab_scale"
+    )
 
     // Handle shared URL from other apps
     LaunchedEffect(sharedUrl) {
@@ -129,85 +147,105 @@ fun HomeScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
                         Text(
                             text = "Pegion",
-                            style = MaterialTheme.typography.titleLarge.copy(
+                            style = MaterialTheme.typography.headlineLarge.copy(
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp
+                                letterSpacing = (-0.5).sp
                             ),
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-                        ) {
-                            Text(
-                                text = "Always delivers",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
+                        Text(
+                            text = "Always delivers.",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showBatchDialog = true }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ViewList,
-                            contentDescription = "Batch Download",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                     Box {
-                        IconButton(onClick = { showSortMenu = true }) {
+                        IconButton(
+                            onClick = { showOptionsMenu = true },
+                            modifier = Modifier.testTag("top_app_bar_menu_btn")
+                        ) {
                             Icon(
-                                Icons.AutoMirrored.Filled.Sort,
-                                contentDescription = "Sort downloads",
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Options and Sort",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         DropdownMenu(
-                            expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false }
+                            expanded = showOptionsMenu,
+                            onDismissRequest = { showOptionsMenu = false }
                         ) {
                             DropdownMenuItem(
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ViewList,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                text = { Text("Batch Download…") },
+                                onClick = {
+                                    showOptionsMenu = false
+                                    showBatchDialog = true
+                                }
+                            )
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                            Text(
+                                text = "SORT BY",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                            )
+
+                            DropdownMenuItem(
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.Sort,
+                                        contentDescription = null
+                                    )
+                                },
                                 text = { Text("Date Added (Newest)") },
                                 onClick = {
                                     viewModel.onSortOrderSelected(DownloadSortOrder.DATE_ADDED_DESC)
-                                    showSortMenu = false
+                                    showOptionsMenu = false
                                 }
                             )
                             DropdownMenuItem(
                                 text = { Text("Date Added (Oldest)") },
                                 onClick = {
                                     viewModel.onSortOrderSelected(DownloadSortOrder.DATE_ADDED_ASC)
-                                    showSortMenu = false
+                                    showOptionsMenu = false
                                 }
                             )
                             DropdownMenuItem(
                                 text = { Text("File Name (A - Z)") },
                                 onClick = {
                                     viewModel.onSortOrderSelected(DownloadSortOrder.NAME_ASC)
-                                    showSortMenu = false
+                                    showOptionsMenu = false
                                 }
                             )
                             DropdownMenuItem(
                                 text = { Text("File Size (Largest)") },
                                 onClick = {
                                     viewModel.onSortOrderSelected(DownloadSortOrder.SIZE_DESC)
-                                    showSortMenu = false
+                                    showOptionsMenu = false
                                 }
                             )
                             DropdownMenuItem(
                                 text = { Text("Progress (%)") },
                                 onClick = {
                                     viewModel.onSortOrderSelected(DownloadSortOrder.PROGRESS_DESC)
-                                    showSortMenu = false
+                                    showOptionsMenu = false
                                 }
                             )
                         }
@@ -224,11 +262,26 @@ fun HomeScreen(
                     addDialogInitialUrl = ""
                     showAddDialog = true
                 },
-                icon = { Icon(Icons.Default.Add, contentDescription = "Add Download") },
-                text = { Text("New Download") },
+                icon = {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add Download"
+                    )
+                },
+                text = {
+                    Text(
+                        text = "New Download",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.testTag("fab_add_download")
+                modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = fabPulseScale
+                        scaleY = fabPulseScale
+                    }
+                    .testTag("fab_add_download")
             )
         }
     ) { paddingValues ->
@@ -236,7 +289,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 88.dp)
+            contentPadding = PaddingValues(bottom = 96.dp)
         ) {
             // Clipboard banner
             item {
@@ -250,9 +303,9 @@ fun HomeScreen(
                 )
             }
 
-            // Summary Telemetry Card
+            // Hero Global Speed Card
             item {
-                SummaryHeaderCard(
+                GlobalSpeedHeroCard(
                     summary = summary,
                     onPauseAll = { viewModel.pauseAll() },
                     onResumeAll = { viewModel.resumeAll() },
@@ -260,28 +313,12 @@ fun HomeScreen(
                 )
             }
 
-            // Search Bar
+            // Docked Search Bar
             item {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { viewModel.onSearchQueryChanged(it) },
-                    placeholder = { Text("Search downloads or URLs…") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                            }
-                        }
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                        .testTag("search_input")
+                DockedSearchBarView(
+                    query = searchQuery,
+                    onQueryChange = { viewModel.onSearchQueryChanged(it) },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                 )
             }
 
@@ -290,7 +327,7 @@ fun HomeScreen(
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 6.dp),
+                        .padding(vertical = 4.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -305,22 +342,33 @@ fun HomeScreen(
                         FilterChip(
                             selected = selectedFilter == filter,
                             onClick = { viewModel.onFilterSelected(filter) },
+                            shape = RoundedCornerShape(12.dp),
                             label = {
                                 Text(
                                     text = "${filter.name.lowercase().replaceFirstChar { it.uppercase() }} ($count)",
-                                    style = MaterialTheme.typography.labelMedium
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = if (selectedFilter == filter) FontWeight.Bold else FontWeight.Medium
+                                    )
                                 )
                             },
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = selectedFilter == filter,
+                                borderColor = Color.Transparent,
+                                selectedBorderColor = Color.Transparent
                             )
                         )
                     }
                 }
             }
 
-            // Download items
+            // Download items or empty state
             if (downloads.isEmpty()) {
                 item {
                     EmptyStateView(
@@ -405,8 +453,11 @@ fun HomeScreen(
     }
 }
 
+/**
+ * Hero Card with solid primaryContainer background, circular indicator, and high contrast.
+ */
 @Composable
-fun SummaryHeaderCard(
+fun GlobalSpeedHeroCard(
     summary: HomeSummaryMetrics,
     onPauseAll: () -> Unit,
     onResumeAll: () -> Unit,
@@ -414,97 +465,210 @@ fun SummaryHeaderCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Speed indicator
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.Default.Speed,
-                                contentDescription = "Speed",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = formatSpeed(summary.globalSpeed),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
+                // Left: Large Circular Progress Indicator showing speed activity
+                Box(
+                    modifier = Modifier.size(64.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (summary.globalSpeed > 0) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
+                            strokeWidth = 6.dp,
+                            strokeCap = StrokeCap.Round
                         )
-                        Text(
-                            text = "Global Speed",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        CircularProgressIndicator(
+                            progress = { 0f },
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
+                            strokeWidth = 6.dp,
+                            strokeCap = StrokeCap.Round
                         )
                     }
+
+                    Icon(
+                        imageVector = Icons.Default.Speed,
+                        contentDescription = "Speedometer",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
                 }
 
-                // Batch controls
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (summary.activeCount > 0) {
-                        TextButton(onClick = onPauseAll) {
-                            Icon(Icons.Default.Pause, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Pause All", style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                    if (summary.pausedCount > 0) {
-                        TextButton(onClick = onResumeAll) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Resume All", style = MaterialTheme.typography.labelSmall)
-                        }
+                Spacer(modifier = Modifier.width(18.dp))
+
+                // Right: Speed, stats, and description in onPrimaryContainer
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Global Speed",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = formatSpeed(summary.globalSpeed),
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.25).sp
+                        ),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "${summary.activeCount} Active",
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                        )
+                        Text(
+                            text = "•",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                        )
+                        Text(
+                            text = "${formatBytes(summary.totalBytesDownloaded)} Delivered",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            // Actions row: Pause All / Resume All inside the card
+            if (summary.activeCount > 0 || summary.pausedCount > 0) {
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f),
+                    thickness = 1.dp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
 
-            // 3 statistics counters
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                StatItem(label = "Active", value = "${summary.activeCount}", color = MaterialTheme.colorScheme.primary)
-                StatItem(label = "Completed", value = "${summary.completedCount}", color = Color(0xFF10B981))
-                StatItem(label = "Total Delivered", value = formatBytes(summary.totalBytesDownloaded), color = MaterialTheme.colorScheme.secondary)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (summary.activeCount > 0) {
+                        FilledTonalButton(
+                            onClick = onPauseAll,
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.primary
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Pause,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "Pause All",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+
+                    if (summary.pausedCount > 0) {
+                        if (summary.activeCount > 0) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        FilledTonalButton(
+                            onClick = onResumeAll,
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.primary
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "Resume All",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
+/**
+ * Docked Search Bar with rounded corners and subtle surfaceVariant background.
+ */
 @Composable
-fun StatItem(label: String, value: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = color
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+fun DockedSearchBarView(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = {
+            Text(
+                text = "Search downloads or URLs…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Clear search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        shape = RoundedCornerShape(24.dp),
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = Color.Transparent,
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("search_input")
+    )
 }
 
 private fun openFile(context: Context, filePath: String) {
@@ -541,5 +705,45 @@ private fun shareFile(context: Context, filePath: String) {
         context.startActivity(Intent.createChooser(intent, "Share file via…"))
     } catch (_: Exception) {
         Toast.makeText(context, "Could not share file", Toast.LENGTH_SHORT).show()
+    }
+}
+
+@Preview(name = "Global Speed Hero Light", showBackground = true)
+@Composable
+private fun GlobalSpeedHeroLightPreview() {
+    PegionTheme(dynamicColor = false) {
+        GlobalSpeedHeroCard(
+            summary = HomeSummaryMetrics(
+                activeCount = 2,
+                completedCount = 8,
+                pausedCount = 1,
+                failedCount = 0,
+                totalBytesDownloaded = 4800000000L,
+                globalSpeed = 3450000L
+            ),
+            onPauseAll = {},
+            onResumeAll = {},
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+}
+
+@Preview(name = "Global Speed Hero Dark", showBackground = true)
+@Composable
+private fun GlobalSpeedHeroDarkPreview() {
+    PegionTheme(themeMode = AppThemeMode.DARK, dynamicColor = false) {
+        GlobalSpeedHeroCard(
+            summary = HomeSummaryMetrics(
+                activeCount = 1,
+                completedCount = 12,
+                pausedCount = 0,
+                failedCount = 0,
+                totalBytesDownloaded = 12500000000L,
+                globalSpeed = 6200000L
+            ),
+            onPauseAll = {},
+            onResumeAll = {},
+            modifier = Modifier.padding(16.dp)
+        )
     }
 }

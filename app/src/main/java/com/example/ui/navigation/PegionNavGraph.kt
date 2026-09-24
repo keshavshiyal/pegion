@@ -2,24 +2,28 @@ package com.example.ui.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Queue
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Queue
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -27,6 +31,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import com.example.R
 import com.example.ui.screens.about.AboutScreen
 import com.example.ui.screens.details.DetailsViewModel
 import com.example.ui.screens.details.DownloadDetailsScreen
@@ -36,18 +41,50 @@ import com.example.ui.screens.home.HomeViewModel
 import com.example.ui.screens.settings.SettingsScreen
 import com.example.ui.screens.settings.SettingsViewModel
 
+sealed interface NavIconSource {
+    data class Vector(val selected: ImageVector, val unselected: ImageVector) : NavIconSource
+    data class Resource(val selectedResId: Int, val unselectedResId: Int) : NavIconSource
+}
+
 data class BottomNavItem(
     val route: String,
     val label: String,
-    val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector
+    val iconSource: NavIconSource
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem(Screen.Home.route, "Home", Icons.Filled.CloudDownload, Icons.Outlined.CloudDownload),
-    BottomNavItem(Screen.Downloads.route, "Queue", Icons.Filled.Queue, Icons.Outlined.Queue),
-    BottomNavItem(Screen.Settings.route, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings),
-    BottomNavItem(Screen.About.route, "About", Icons.Filled.Info, Icons.Outlined.Info)
+    BottomNavItem(
+        route = Screen.Home.route,
+        label = "Home",
+        iconSource = NavIconSource.Resource(
+            selectedResId = R.drawable.ic_pegion_nav,
+            unselectedResId = R.drawable.ic_pegion_nav_outlined
+        )
+    ),
+    BottomNavItem(
+        route = Screen.Downloads.route,
+        label = "Queue",
+        iconSource = NavIconSource.Vector(
+            selected = Icons.Filled.Queue,
+            unselected = Icons.Outlined.Queue
+        )
+    ),
+    BottomNavItem(
+        route = Screen.Settings.route,
+        label = "Settings",
+        iconSource = NavIconSource.Vector(
+            selected = Icons.Filled.Settings,
+            unselected = Icons.Outlined.Settings
+        )
+    ),
+    BottomNavItem(
+        route = Screen.About.route,
+        label = "About",
+        iconSource = NavIconSource.Vector(
+            selected = Icons.Filled.Info,
+            unselected = Icons.Outlined.Info
+        )
+    )
 )
 
 @Composable
@@ -66,9 +103,13 @@ fun PegionNavGraph(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.surface,
         bottomBar = {
             if (!isDetailsScreen) {
-                NavigationBar {
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 3.dp
+                ) {
                     bottomNavItems.forEach { item ->
                         val selected = currentDestination == item.route
                         NavigationBarItem(
@@ -83,12 +124,38 @@ fun PegionNavGraph(
                                 }
                             },
                             icon = {
-                                Icon(
-                                    imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
-                                    contentDescription = item.label
+                                when (val source = item.iconSource) {
+                                    is NavIconSource.Vector -> {
+                                        Icon(
+                                            imageVector = if (selected) source.selected else source.unselected,
+                                            contentDescription = item.label,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                    is NavIconSource.Resource -> {
+                                        Icon(
+                                            painter = painterResource(if (selected) source.selectedResId else source.unselectedResId),
+                                            contentDescription = item.label,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
+                            },
+                            label = {
+                                Text(
+                                    text = item.label,
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+                                    )
                                 )
                             },
-                            label = { Text(item.label) }
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                                selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         )
                     }
                 }
