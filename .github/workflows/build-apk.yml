@@ -1,0 +1,101 @@
+name: Build Debug & Release APKs
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Debug and Release APKs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Ensure environment configuration
+        run: |
+          if [ ! -f ".env" ]; then
+            if [ -f ".env.example" ]; then
+              cp .env.example .env
+            else
+              touch .env
+            fi
+          fi
+
+      - name: Prepare Debug Keystore
+        run: |
+          if [ ! -f "debug.keystore" ] && [ -f "debug.keystore.base64" ]; then
+            echo "Decoding debug.keystore from base64..."
+            base64 -d debug.keystore.base64 > debug.keystore
+          fi
+
+      - name: Prepare Release Keystore
+        env:
+          SIGNING_KEY_DATA: ${{ secrets.PEGION_SIGNING_KEY }}
+        run: |
+          if [ -n "$SIGNING_KEY_DATA" ]; then
+            echo "Decoding PEGION_SIGNING_KEY to release.jks..."
+            if echo "$SIGNING_KEY_DATA" | tr -d '\r\n ' | base64 -d > release.jks 2>/dev/null && [ -s release.jks ]; then
+              echo "Decoded release keystore from base64."
+            elif echo "$SIGNING_KEY_DATA" | base64 -d > release.jks 2>/dev/null && [ -s release.jks ]; then
+              echo "Decoded release keystore from multiline base64."
+            else
+              echo "Writing PEGION_SIGNING_KEY directly..."
+              printf '%s' "$SIGNING_KEY_DATA" > release.jks
+            fi
+            echo "Keystore file created ($(wc -c < release.jks) bytes)."
+            echo "PEGION_KEYSTORE_FILE=${GITHUB_WORKSPACE}/release.jks" >> $GITHUB_ENV
+          else
+            echo "PEGION_SIGNING_KEY secret not found or empty."
+          fi
+
+      - name: Ensure Gradle Wrapper
+        run: |
+          if [ ! -f "./gradlew" ]; then
+            echo "Generating Gradle wrapper..."
+            gradle wrapper
+          fi
+          chmod +x gradlew
+
+      - name: Build Debug & Release APKs
+        env:
+          PEGION_KEYSTORE_FILE: ${{ env.PEGION_KEYSTORE_FILE || format('{0}/release.jks', github.workspace) }}
+          PEGION_ALIAS: ${{ secrets.PEGION_ALIAS }}
+          PEGION_PASSWORD: ${{ secrets.PEGION_PASSWORD }}
+          PEGION_SIGNING_KEY_PASSWORD: ${{ secrets.PEGION_SIGNING_KEY_PASSWORD }}
+          DEBUG_KEYSTORE_FILE: ${{ secrets.DEBUG_KEYSTORE_FILE }}
+          DEBUG_KEYSTORE_PASSWORD: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
+          DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
+          DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
+        run: ./gradlew assembleDebug assembleRelease --stacktrace
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pegion-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pegion-release-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
