@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Wing upper accent (Cyan gradient-like solid) -->
+    <path
+        android:fillColor="#00B4D8"
+        android:pathData="M34,44 C38,34 50,28 66,28 C74,28 82,32 86,37 C76,37 66,41 58,47 C50,53 43,62 38,70 C36,61 34,51 34,44 Z" />
+
+    <!-- Pigeon Body (Clean White & Slate) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,50 C44,46 54,43 64,44 C72,45 80,49 84,54 C87,51 90,47 93,46 C91,52 89,57 86,60 C85,67 80,72 73,74 C64,76 54,72 46,66 L30,76 L35,63 C33,59 34,54 38,50 Z" />
+
+    <!-- Wing feather detail -->
+    <path
+        android:fillColor="#90E0EF"
+        android:pathData="M48,46 C56,41 68,40 76,43 C68,48 60,55 54,63 C50,57 48,51 48,46 Z" />
+
+    <!-- Eye dot -->
+    <path
+        android:fillColor="#0B132B"
+        android:pathData="M84,52 A1.8,1.8 0 1,1 84,52.01" />
+
+    <!-- Beak -->
+    <path
+        android:fillColor="#FFB703"
+        android:pathData="M92,53 L98,55 L91,58 Z" />
+
+    <!-- Speed trail dots -->
+    <path
+        android:fillColor="#48CAE4"
+        android:pathData="M24,54 A2,2 0 1,1 24,54.01" />
+    <path
+        android:fillColor="#48CAE4"
+        android:pathData="M20,62 A2.5,2.5 0 1,1 20,62.01" />
+    <path
+        android:fillColor="#48CAE4"
+        android:pathData="M18,70 A2,2 0 1,1 18,70.01" />
+
+    <!-- Carried Parcel: Download Badge -->
+    <!-- Delivery parcel base circle -->
+    <path
+        android:fillColor="#0077B6"
+        android:pathData="M56,76 m-12,0 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0" />
+
+    <!-- Download Arrow in parcel -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,69 L58,69 L58,75 L62,75 L56,81 L50,75 L54,75 Z" />
+
+    <!-- Download tray line -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M49,83 L63,83 L63,84.5 L49,84.5 Z" />
+
+</vector>

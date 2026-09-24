@@ -1,0 +1,6 @@
+{
+  "name": "Pegion",
+  "description": "Native Android download manager: Always delivers. Fast, robust, resume-ready downloads with speed controls, queues, and checksum verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

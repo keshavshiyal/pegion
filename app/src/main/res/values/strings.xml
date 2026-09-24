@@ -1,0 +1,150 @@
+<resources>
+    <string name="app_name">Pegion</string>
+    <string name="app_tagline">Always delivers.</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_downloads">Downloads</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_about">About</string>
+
+    <!-- Filters -->
+    <string name="filter_all">All</string>
+    <string name="filter_active">Active</string>
+    <string name="filter_completed">Completed</string>
+    <string name="filter_paused">Paused</string>
+    <string name="filter_failed">Failed</string>
+
+    <!-- Sort Options -->
+    <string name="sort_date_added">Date Added</string>
+    <string name="sort_name">File Name</string>
+    <string name="sort_size">File Size</string>
+    <string name="sort_progress">Progress</string>
+    <string name="sort_title">Sort by</string>
+
+    <!-- Actions -->
+    <string name="action_add_download">New Download</string>
+    <string name="action_batch_download">Batch Download</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_resume">Resume</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_open">Open File</string>
+    <string name="action_share">Share File</string>
+    <string name="action_copy_link">Copy URL</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_clear_completed">Clear Completed</string>
+    <string name="action_clear_all">Clear All History</string>
+    <string name="action_verify_checksum">Verify Checksum</string>
+    <string name="action_save">Save</string>
+    <string name="action_start">Start Download</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="action_export_settings">Export Settings</string>
+    <string name="action_import_settings">Import Settings</string>
+
+    <!-- Dialogs & Inputs -->
+    <string name="dialog_add_title">Add New Download</string>
+    <string name="dialog_batch_title">Add Batch Downloads</string>
+    <string name="dialog_url_label">Download URL (HTTP/HTTPS)</string>
+    <string name="dialog_batch_urls_label">Paste URLs (one per line)</string>
+    <string name="dialog_filename_label">File Name (Optional)</string>
+    <string name="dialog_checksum_type">Checksum Type</string>
+    <string name="dialog_checksum_value">Expected Checksum Hash</string>
+    <string name="dialog_priority_label">Priority</string>
+    <string name="dialog_speed_limit_label">Speed Limit for this download</string>
+    <string name="dialog_delete_confirm_title">Delete Download?</string>
+    <string name="dialog_delete_confirm_msg">Do you also want to remove the downloaded file from storage?</string>
+    <string name="dialog_delete_file_checkbox">Delete file from device storage</string>
+    <string name="dialog_rename_title">Rename Download</string>
+    <string name="dialog_duplicate_warning">This URL has already been downloaded or queued. Proceed anyway?</string>
+
+    <!-- Priorities -->
+    <string name="priority_high">High</string>
+    <string name="priority_normal">Normal</string>
+    <string name="priority_low">Low</string>
+
+    <!-- Status -->
+    <string name="status_pending">Queued</string>
+    <string name="status_downloading">Downloading</string>
+    <string name="status_paused">Paused</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_failed">Failed</string>
+    <string name="status_cancelled">Cancelled</string>
+
+    <!-- Details Screen -->
+    <string name="details_title">Download Details</string>
+    <string name="details_overview">Overview</string>
+    <string name="details_metrics">Metrics &amp; Speed</string>
+    <string name="details_logs">Logs &amp; Verification</string>
+    <string name="details_url">URL</string>
+    <string name="details_file_path">Saved Path</string>
+    <string name="details_file_size">File Size</string>
+    <string name="details_progress">Progress</string>
+    <string name="details_speed">Current Speed</string>
+    <string name="details_eta">Estimated Time Left</string>
+    <string name="details_created_at">Added On</string>
+    <string name="details_completed_at">Finished On</string>
+    <string name="details_checksum_match">Checksum Verified (Match)</string>
+    <string name="details_checksum_mismatch">Checksum Mismatch!</string>
+    <string name="details_checksum_none">No checksum specified</string>
+    <string name="details_engine">Engine: Pegion Turbo Engine</string>
+
+    <!-- Settings Screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_category_network">Network &amp; Queue</string>
+    <string name="settings_wifi_only">Wi-Fi Only</string>
+    <string name="settings_wifi_only_desc">Only download when connected to unmetered Wi-Fi</string>
+    <string name="settings_charging_only">Charging Only</string>
+    <string name="settings_charging_only_desc">Download only when device is plugged in</string>
+    <string name="settings_max_concurrent">Max Concurrent Downloads</string>
+    <string name="settings_speed_limit">Global Speed Limit</string>
+    <string name="settings_speed_limit_unlimited">Unlimited</string>
+    <string name="settings_category_automation">Automation &amp; Detection</string>
+    <string name="settings_clipboard_detect">Clipboard Link Detection</string>
+    <string name="settings_clipboard_detect_desc">Prompt to download when a downloadable link is copied</string>
+    <string name="settings_category_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="theme_system">System Default</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_amoled">Pure AMOLED Black</string>
+    <string name="settings_category_notifications">Notifications</string>
+    <string name="settings_notifications_enabled">Show Progress Notifications</string>
+    <string name="settings_notifications_desc">Persistent notification with controls while downloading</string>
+    <string name="settings_category_backup">Backup &amp; Storage</string>
+
+    <!-- Clipboard Banner -->
+    <string name="clipboard_banner_title">Link detected in clipboard</string>
+    <string name="clipboard_banner_action">Download Now</string>
+
+    <!-- About Screen -->
+    <string name="about_title">About Pegion</string>
+    <string name="about_version">Version 1.0.0 (Release)</string>
+    <string name="about_philosophy_title">Philosophy</string>
+    <string name="about_philosophy_text">Pegion is built on a simple promise: Always delivers. Inspired by historic carrier pigeons that bridged impossible distances without failure, Pegion brings unwavering reliability, zero bloat, zero tracking, and absolute respect for your battery, bandwidth, and privacy.</string>
+    <string name="about_privacy_title">Privacy First</string>
+    <string name="about_privacy_text">Zero telemetry. Zero third-party analytics. No advertising SDKs. Network connections are strictly made to your requested download URLs and nowhere else.</string>
+    <string name="about_license_title">Open Source</string>
+    <string name="about_license_text">Licensed under Apache-2.0. Clean architecture, high-efficiency coroutine pipelines, and modern Jetpack Compose Material 3.</string>
+    <string name="about_github_btn">View on GitHub</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_name">Download Progress</string>
+    <string name="notif_channel_desc">Shows ongoing download progress and controls</string>
+    <string name="notif_completed_channel_name">Download Complete</string>
+    <string name="notif_completed_channel_desc">Notifies when downloads finish or need attention</string>
+    <string name="notif_downloading">Downloading %1$s</string>
+    <string name="notif_download_complete">Download finished: %1$s</string>
+    <string name="notif_download_failed">Download failed: %1$s</string>
+
+    <!-- Empty States -->
+    <string name="empty_home_title">No Downloads Yet</string>
+    <string name="empty_home_desc">Tap the + button below or share a link to Pegion to start your first download.</string>
+    <string name="empty_search_title">No Matching Downloads</string>
+    <string name="empty_search_desc">Try searching with a different filename or URL keyword.</string>
+    
+    <!-- General -->
+    <string name="search_placeholder">Search downloads or URLs…</string>
+    <string name="pull_to_refresh">Pull to refresh</string>
+</resources>
