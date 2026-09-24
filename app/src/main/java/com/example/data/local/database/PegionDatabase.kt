@@ -53,7 +53,7 @@ abstract class PegionDatabase : RoomDatabase() {
                     context.applicationContext,
                     PegionDatabase::class.java,
                     "pegion_downloads.db"
-                ).fallbackToDestructiveMigration().build().also { INSTANCE = it }
+                ).fallbackToDestructiveMigration(dropAllTables = true).build().also { INSTANCE = it }
             }
         }
     }

@@ -27,6 +27,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
@@ -35,9 +37,7 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -158,7 +158,7 @@ fun HomeScreen(
                 actions = {
                     IconButton(onClick = { showBatchDialog = true }) {
                         Icon(
-                            Icons.Default.ViewList,
+                            Icons.AutoMirrored.Filled.ViewList,
                             contentDescription = "Batch Download",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -166,7 +166,7 @@ fun HomeScreen(
                     Box {
                         IconButton(onClick = { showSortMenu = true }) {
                             Icon(
-                                Icons.Default.Sort,
+                                Icons.AutoMirrored.Filled.Sort,
                                 contentDescription = "Sort downloads",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )

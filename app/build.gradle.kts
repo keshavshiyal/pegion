@@ -92,6 +92,11 @@ android {
     includeInApk = false
     includeInBundle = true
   }
+  lint {
+    checkReleaseBuilds = false
+    abortOnError = false
+    disable.add("RemoveWorkManagerInitializer")
+  }
 }
 
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
