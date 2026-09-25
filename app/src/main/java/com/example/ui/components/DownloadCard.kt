@@ -260,13 +260,37 @@ fun DownloadCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val sizeText = formatBytes(download.downloadedBytes) +
-                        if (download.fileSize > 0) " / " + formatBytes(download.fileSize) else ""
+                val diskLength = remember(download.filePath, download.status) {
+                    val f = File(download.filePath)
+                    if (f.exists()) f.length() else 0L
+                }
+                val effectiveTotal = when {
+                    download.fileSize > 0 -> download.fileSize
+                    download.downloadedBytes > 0 -> download.downloadedBytes
+                    diskLength > 0 -> diskLength
+                    else -> 0L
+                }
+                val effectiveDownloaded = when {
+                    download.downloadedBytes > 0 -> download.downloadedBytes
+                    diskLength > 0 -> diskLength
+                    download.fileSize > 0 -> download.fileSize
+                    else -> 0L
+                }
 
-                val progressText = if (download.fileSize > 0) {
-                    "%.1f%%".format(download.progress)
-                } else if (download.status == DownloadStatus.COMPLETED) {
+                val sizeText = when {
+                    download.status == DownloadStatus.COMPLETED -> {
+                        if (effectiveTotal > 0) formatBytes(effectiveTotal) else formatBytes(effectiveDownloaded)
+                    }
+                    effectiveTotal > 0 -> {
+                        "${formatBytes(effectiveDownloaded)} / ${formatBytes(effectiveTotal)}"
+                    }
+                    else -> formatBytes(effectiveDownloaded)
+                }
+
+                val progressText = if (download.status == DownloadStatus.COMPLETED) {
                     "100%"
+                } else if (effectiveTotal > 0) {
+                    "%.1f%%".format((effectiveDownloaded.toFloat() / effectiveTotal.toFloat() * 100f).coerceIn(0f, 100f))
                 } else {
                     "—"
                 }

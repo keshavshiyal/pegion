@@ -73,8 +73,32 @@ interface DownloadDao {
         eta: Long
     )
 
-    @Query("UPDATE downloads SET status = 'COMPLETED', progress = 100.0, speed = 0, eta = 0, completedAt = :completedAt, actualChecksum = :actualChecksum WHERE id = :id")
-    suspend fun markCompleted(id: Long, completedAt: Long, actualChecksum: String?)
+    @Query("""
+        UPDATE downloads 
+        SET status = 'COMPLETED', 
+            progress = 100.0, 
+            speed = 0, 
+            eta = 0, 
+            completedAt = :completedAt, 
+            actualChecksum = :actualChecksum,
+            downloadedBytes = CASE WHEN :downloadedBytes > 0 THEN :downloadedBytes ELSE downloadedBytes END,
+            fileSize = CASE 
+                WHEN :fileSize > 0 THEN :fileSize 
+                WHEN :downloadedBytes > 0 THEN :downloadedBytes 
+                ELSE fileSize 
+            END
+        WHERE id = :id
+    """)
+    suspend fun markCompleted(
+        id: Long,
+        completedAt: Long,
+        actualChecksum: String?,
+        downloadedBytes: Long = 0L,
+        fileSize: Long = 0L
+    )
+
+    @Query("UPDATE downloads SET downloadedBytes = :size, fileSize = :size WHERE id = :id")
+    suspend fun updateFileSize(id: Long, size: Long)
 
     @Query("UPDATE downloads SET fileName = :newName WHERE id = :id")
     suspend fun renameDownload(id: Long, newName: String)

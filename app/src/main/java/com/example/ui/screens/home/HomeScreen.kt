@@ -94,6 +94,7 @@ import com.example.ui.components.ClipboardBanner
 import com.example.ui.components.DeleteConfirmDialog
 import com.example.ui.components.DownloadCard
 import com.example.ui.components.EmptyStateView
+import com.example.ui.components.PegionLogo
 import com.example.ui.components.RenameDialog
 import com.example.ui.components.formatBytes
 import com.example.ui.components.formatSpeed
@@ -324,46 +325,53 @@ fun HomeScreen(
 
             // Filter Tabs Row
             item {
-                LazyRow(
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
-                    items(DownloadFilter.values()) { filter ->
-                        val count = when (filter) {
-                            DownloadFilter.ALL -> downloads.size
-                            DownloadFilter.ACTIVE -> summary.activeCount
-                            DownloadFilter.COMPLETED -> summary.completedCount
-                            DownloadFilter.PAUSED -> summary.pausedCount
-                            DownloadFilter.FAILED -> summary.failedCount
-                        }
-                        FilterChip(
-                            selected = selectedFilter == filter,
-                            onClick = { viewModel.onFilterSelected(filter) },
-                            shape = RoundedCornerShape(12.dp),
-                            label = {
-                                Text(
-                                    text = "${filter.name.lowercase().replaceFirstChar { it.uppercase() }} ($count)",
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = if (selectedFilter == filter) FontWeight.Bold else FontWeight.Medium
-                                    )
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(DownloadFilter.values()) { filter ->
+                            val count = when (filter) {
+                                DownloadFilter.ALL -> downloads.size
+                                DownloadFilter.ACTIVE -> summary.activeCount
+                                DownloadFilter.COMPLETED -> summary.completedCount
+                                DownloadFilter.PAUSED -> summary.pausedCount
+                                DownloadFilter.FAILED -> summary.failedCount
+                            }
+                            FilterChip(
                                 selected = selectedFilter == filter,
-                                borderColor = Color.Transparent,
-                                selectedBorderColor = Color.Transparent
+                                onClick = { viewModel.onFilterSelected(filter) },
+                                shape = RoundedCornerShape(12.dp),
+                                label = {
+                                    Text(
+                                        text = "${filter.name.lowercase().replaceFirstChar { it.uppercase() }} ($count)",
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontWeight = if (selectedFilter == filter) FontWeight.Bold else FontWeight.Medium
+                                        )
+                                    )
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = selectedFilter == filter,
+                                    borderColor = Color.Transparent,
+                                    selectedBorderColor = Color.Transparent
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
@@ -476,17 +484,17 @@ fun GlobalSpeedHeroCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left: Large Circular Progress Indicator showing speed activity
+                // Left: Large Circular Progress Indicator showing speed activity with Pegion mascot
                 Box(
-                    modifier = Modifier.size(64.dp),
+                    modifier = Modifier.size(68.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     if (summary.globalSpeed > 0) {
                         CircularProgressIndicator(
                             modifier = Modifier.fillMaxSize(),
                             color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f),
-                            strokeWidth = 6.dp,
+                            trackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.45f),
+                            strokeWidth = 5.dp,
                             strokeCap = StrokeCap.Round
                         )
                     } else {
@@ -494,17 +502,16 @@ fun GlobalSpeedHeroCard(
                             progress = { 0f },
                             modifier = Modifier.fillMaxSize(),
                             color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
-                            strokeWidth = 6.dp,
+                            trackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
+                            strokeWidth = 5.dp,
                             strokeCap = StrokeCap.Round
                         )
                     }
 
-                    Icon(
-                        imageVector = Icons.Default.Speed,
-                        contentDescription = "Speedometer",
+                    PegionLogo(
+                        size = 38.dp,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
+                        accentTint = MaterialTheme.colorScheme.tertiary
                     )
                 }
 

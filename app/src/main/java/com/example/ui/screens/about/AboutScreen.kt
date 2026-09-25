@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.ui.components.PegionLogo
 import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,11 +80,10 @@ fun AboutScreen(
                 modifier = Modifier.size(96.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.FlightTakeoff,
-                        contentDescription = "Pegion Logo",
+                    PegionLogo(
+                        size = 62.dp,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(54.dp)
+                        accentTint = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }

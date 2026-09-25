@@ -101,6 +101,9 @@ class DownloadRepositoryImpl(
     override suspend fun clearAll() =
         downloadDao.clearAll()
 
+    override suspend fun updateFileSize(id: Long, size: Long) =
+        downloadDao.updateFileSize(id, size)
+
     override fun getSpeedHistory(id: Long): List<SpeedSample> =
         downloadEngine.getSpeedHistory(id)
 }

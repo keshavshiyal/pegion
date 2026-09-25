@@ -9,9 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,7 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.ui.theme.PegionTheme
 
 @Composable
 fun EmptyStateView(
@@ -40,19 +39,18 @@ fun EmptyStateView(
         ) {
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                modifier = Modifier.size(80.dp)
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                modifier = Modifier.size(92.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Default.CloudDownload,
-                        contentDescription = "Empty",
-                        modifier = Modifier.size(40.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                    PegionLogo(
+                        size = 56.dp,
+                        tint = MaterialTheme.colorScheme.primary,
+                        accentTint = MaterialTheme.colorScheme.tertiary
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
             Text(
                 text = if (isFiltered) "No Matching Downloads" else "No Downloads Yet",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -60,12 +58,28 @@ fun EmptyStateView(
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = if (isFiltered) "Try adjusting your search or filter options."
-                else "Paste a link or tap the add button to start your first download with Pegion.",
-                style = MaterialTheme.typography.bodySmall,
+                text = if (isFiltered) "Try adjusting your search terms or filter selection."
+                else "Ready to deliver. Paste a download link or tap '+' to start high-speed downloading.",
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
         }
+    }
+}
+
+@Preview(name = "Empty State Light", showBackground = true)
+@Composable
+private fun EmptyStateLightPreview() {
+    PegionTheme(dynamicColor = false) {
+        EmptyStateView(isFiltered = false)
+    }
+}
+
+@Preview(name = "Empty State Dark", showBackground = true)
+@Composable
+private fun EmptyStateDarkPreview() {
+    PegionTheme(themeMode = com.example.ui.theme.AppThemeMode.DARK, dynamicColor = false) {
+        EmptyStateView(isFiltered = false)
     }
 }

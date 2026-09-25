@@ -118,6 +118,24 @@ fun DownloadDetailsScreen(
 
     val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy HH:mm:ss", Locale.getDefault()) }
 
+    // Resilient file size calculation checking Room database and filesystem fallback
+    val actualDiskSize = remember(item.filePath, item.status) {
+        val f = File(item.filePath)
+        if (f.exists()) f.length() else 0L
+    }
+    val effectiveSize = when {
+        item.fileSize > 0 -> item.fileSize
+        item.downloadedBytes > 0 -> item.downloadedBytes
+        actualDiskSize > 0 -> actualDiskSize
+        else -> 0L
+    }
+    val effectiveDownloaded = when {
+        item.downloadedBytes > 0 -> item.downloadedBytes
+        actualDiskSize > 0 -> actualDiskSize
+        item.fileSize > 0 -> item.fileSize
+        else -> 0L
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.surface,
@@ -217,13 +235,25 @@ fun DownloadDetailsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        val sizeText = when {
+                            item.status == DownloadStatus.COMPLETED -> {
+                                if (effectiveSize > 0) "${formatBytes(effectiveSize)} (Delivered)" else formatBytes(effectiveDownloaded)
+                            }
+                            effectiveSize > 0 -> {
+                                "${formatBytes(effectiveDownloaded)} of ${formatBytes(effectiveSize)}"
+                            }
+                            effectiveDownloaded > 0 -> {
+                                "${formatBytes(effectiveDownloaded)} of unknown"
+                            }
+                            else -> "Calculating size…"
+                        }
                         Text(
-                            text = "${formatBytes(item.downloadedBytes)} of ${if (item.fileSize > 0) formatBytes(item.fileSize) else "unknown"}",
+                            text = sizeText,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "%.1f%%".format(item.progress),
+                            text = if (item.status == DownloadStatus.COMPLETED) "100%" else "%.1f%%".format(item.progress),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = statusColor
                         )
@@ -417,8 +447,8 @@ fun DownloadDetailsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     DetailRowWithCopy("Saved Path", item.filePath, context)
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    DetailRow("File Size", formatBytes(item.fileSize))
-                    DetailRow("Downloaded", formatBytes(item.downloadedBytes))
+                    DetailRow("File Size", if (effectiveSize > 0) formatBytes(effectiveSize) else if (item.status == DownloadStatus.COMPLETED) formatBytes(effectiveDownloaded) else "Unknown")
+                    DetailRow("Downloaded", formatBytes(effectiveDownloaded))
                     DetailRow("ETA", formatEta(item.eta))
                     DetailRow("Date Added", dateFormat.format(Date(item.createdAt)))
                     item.completedAt?.let {

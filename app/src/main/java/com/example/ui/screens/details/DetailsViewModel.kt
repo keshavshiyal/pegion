@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.entity.DownloadEntity
 import com.example.data.repository.DownloadRepository
 import com.example.download.engine.ChecksumVerifier
+import com.example.download.model.DownloadStatus
 import com.example.download.model.SpeedSample
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +41,20 @@ class DetailsViewModel(
             while (true) {
                 _speedHistory.value = repository.getSpeedHistory(downloadId)
                 delay(1000)
+            }
+        }
+
+        // Auto-heal file size from disk for completed downloads if missing
+        viewModelScope.launch {
+            download.collect { entity ->
+                if (entity != null && entity.status == DownloadStatus.COMPLETED) {
+                    if (entity.fileSize <= 0 || entity.downloadedBytes <= 0) {
+                        val file = File(entity.filePath)
+                        if (file.exists() && file.length() > 0) {
+                            repository.updateFileSize(entity.id, file.length())
+                        }
+                    }
+                }
             }
         }
     }

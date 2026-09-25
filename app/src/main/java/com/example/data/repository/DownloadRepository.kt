@@ -33,5 +33,6 @@ interface DownloadRepository {
     suspend fun renameDownload(id: Long, newName: String)
     suspend fun clearCompleted()
     suspend fun clearAll()
+    suspend fun updateFileSize(id: Long, size: Long)
     fun getSpeedHistory(id: Long): List<SpeedSample>
 }

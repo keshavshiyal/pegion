@@ -249,6 +249,18 @@ class DownloadEngine(
                 contentLength
             }
 
+            // Immediately persist recognized file size from HTTP headers into database
+            if (totalBytes > 0) {
+                downloadDao.updateProgress(
+                    id = downloadId,
+                    downloadedBytes = existingBytes,
+                    fileSize = totalBytes,
+                    progress = if (totalBytes > 0) (existingBytes.toFloat() / totalBytes * 100f).coerceIn(0f, 100f) else 0f,
+                    speed = 0L,
+                    eta = -1L
+                )
+            }
+
             // Sniff mime type if not present
             val mimeType = response.header("Content-Type") ?: entity.mimeType
 
@@ -325,6 +337,15 @@ class DownloadEngine(
             randomAccessFile.close()
             inputStream.close()
 
+            // Resolve true final file size from disk or stream
+            val actualDiskLength = if (targetFile.exists()) targetFile.length() else totalDownloaded
+            val finalFileSize = when {
+                totalBytes > 0 -> totalBytes
+                actualDiskLength > 0 -> actualDiskLength
+                else -> totalDownloaded
+            }
+            val finalDownloadedBytes = if (actualDiskLength > 0) actualDiskLength else totalDownloaded
+
             // Verify checksum if specified
             var checksumMatches = true
             var actualChecksum: String? = null
@@ -345,7 +366,9 @@ class DownloadEngine(
                 downloadDao.markCompleted(
                     id = downloadId,
                     completedAt = System.currentTimeMillis(),
-                    actualChecksum = actualChecksum
+                    actualChecksum = actualChecksum,
+                    downloadedBytes = finalDownloadedBytes,
+                    fileSize = finalFileSize
                 )
             }
 
