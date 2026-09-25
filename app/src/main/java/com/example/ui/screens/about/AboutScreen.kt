@@ -42,7 +42,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.ui.theme.AppThemeMode
+import com.example.ui.theme.PegionTheme
 import com.example.ui.components.PegionLogo
 import androidx.compose.ui.unit.sp
 
@@ -239,3 +242,20 @@ private fun PrincipleItem(title: String, description: String) {
         Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
+@Preview(name = "About Screen Light", showBackground = true)
+@Composable
+private fun AboutScreenLightPreview() {
+    PegionTheme(dynamicColor = false) {
+        AboutScreen()
+    }
+}
+
+@Preview(name = "About Screen Dark", showBackground = true)
+@Composable
+private fun AboutScreenDarkPreview() {
+    PegionTheme(themeMode = AppThemeMode.DARK, dynamicColor = false) {
+        AboutScreen()
+    }
+}
+

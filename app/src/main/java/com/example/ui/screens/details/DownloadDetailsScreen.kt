@@ -62,11 +62,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.local.entity.DownloadEntity
+import com.example.download.model.DownloadPriority
 import com.example.download.model.DownloadStatus
+import com.example.download.model.SpeedSample
 import com.example.ui.components.DeleteConfirmDialog
 import com.example.ui.components.PriorityBadge
 import com.example.ui.components.SpeedHistoryChart
@@ -75,6 +79,8 @@ import com.example.ui.components.formatBytes
 import com.example.ui.components.formatEta
 import com.example.ui.components.formatSpeed
 import com.example.ui.components.getFileIcon
+import com.example.ui.theme.AppThemeMode
+import com.example.ui.theme.PegionTheme
 import com.example.ui.theme.StatusCompleted
 import com.example.ui.theme.StatusDownloading
 import com.example.ui.theme.StatusFailed
@@ -92,7 +98,6 @@ fun DownloadDetailsScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     val download by viewModel.download.collectAsStateWithLifecycle()
     val speedHistory by viewModel.speedHistory.collectAsStateWithLifecycle()
     val manualChecksum by viewModel.manualChecksumResult.collectAsStateWithLifecycle()
@@ -106,6 +111,50 @@ fun DownloadDetailsScreen(
         }
         return
     }
+
+    DownloadDetailsContent(
+        item = item,
+        speedHistory = speedHistory,
+        manualChecksum = manualChecksum,
+        onNavigateBack = onNavigateBack,
+        onDeleteClick = { showDeleteDialog = true },
+        onPause = { viewModel.pause() },
+        onResume = { viewModel.resume() },
+        onCancel = { viewModel.cancel() },
+        onRetry = { viewModel.retry() },
+        onComputeChecksum = { viewModel.computeChecksum(it) },
+        modifier = modifier
+    )
+
+    if (showDeleteDialog) {
+        DeleteConfirmDialog(
+            fileName = item.fileName,
+            onDismiss = { showDeleteDialog = false },
+            onConfirm = { deleteFile ->
+                viewModel.delete(deleteFile)
+                showDeleteDialog = false
+                onNavigateBack()
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DownloadDetailsContent(
+    item: DownloadEntity,
+    speedHistory: List<SpeedSample> = emptyList(),
+    manualChecksum: String? = null,
+    onNavigateBack: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},
+    onPause: () -> Unit = {},
+    onResume: () -> Unit = {},
+    onCancel: () -> Unit = {},
+    onRetry: () -> Unit = {},
+    onComputeChecksum: (String) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
 
     val (statusColor, statusLabel) = when (item.status) {
         DownloadStatus.PENDING -> StatusQueued to "Queued"
@@ -155,7 +204,7 @@ fun DownloadDetailsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showDeleteDialog = true }) {
+                    IconButton(onClick = onDeleteClick) {
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = "Delete",
@@ -268,7 +317,7 @@ fun DownloadDetailsScreen(
                         when (item.status) {
                             DownloadStatus.DOWNLOADING -> {
                                 Button(
-                                    onClick = { viewModel.pause() },
+                                    onClick = onPause,
                                     modifier = Modifier.weight(1f),
                                     colors = ButtonDefaults.buttonColors(containerColor = StatusPaused)
                                 ) {
@@ -277,7 +326,7 @@ fun DownloadDetailsScreen(
                                     Text("Pause")
                                 }
                                 OutlinedButton(
-                                    onClick = { viewModel.cancel() },
+                                    onClick = onCancel,
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -287,7 +336,7 @@ fun DownloadDetailsScreen(
                             }
                             DownloadStatus.PAUSED, DownloadStatus.PENDING -> {
                                 Button(
-                                    onClick = { viewModel.resume() },
+                                    onClick = onResume,
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -295,7 +344,7 @@ fun DownloadDetailsScreen(
                                     Text("Resume")
                                 }
                                 OutlinedButton(
-                                    onClick = { viewModel.cancel() },
+                                    onClick = onCancel,
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -324,7 +373,7 @@ fun DownloadDetailsScreen(
                             }
                             DownloadStatus.FAILED, DownloadStatus.CANCELLED -> {
                                 Button(
-                                    onClick = { viewModel.retry() },
+                                    onClick = onRetry,
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -412,10 +461,10 @@ fun DownloadDetailsScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilledTonalButton(onClick = { viewModel.computeChecksum("SHA-256") }) {
+                            FilledTonalButton(onClick = { onComputeChecksum("SHA-256") }) {
                                 Text("Compute SHA-256", style = MaterialTheme.typography.labelSmall)
                             }
-                            FilledTonalButton(onClick = { viewModel.computeChecksum("MD5") }) {
+                            FilledTonalButton(onClick = { onComputeChecksum("MD5") }) {
                                 Text("Compute MD5", style = MaterialTheme.typography.labelSmall)
                             }
                         }
@@ -461,18 +510,6 @@ fun DownloadDetailsScreen(
                 }
             }
         }
-    }
-
-    if (showDeleteDialog) {
-        DeleteConfirmDialog(
-            fileName = item.fileName,
-            onDismiss = { showDeleteDialog = false },
-            onConfirm = { deleteFile ->
-                viewModel.delete(deleteFile)
-                showDeleteDialog = false
-                onNavigateBack()
-            }
-        )
     }
 }
 
@@ -552,5 +589,71 @@ private fun shareFile(context: Context, filePath: String) {
         context.startActivity(Intent.createChooser(intent, "Share file via…"))
     } catch (_: Exception) {
         Toast.makeText(context, "Could not share file", Toast.LENGTH_SHORT).show()
+    }
+}
+
+@Preview(name = "Download Details Completed Light", showBackground = true)
+@Composable
+private fun DownloadDetailsCompletedLightPreview() {
+    PegionTheme(dynamicColor = false) {
+        DownloadDetailsContent(
+            item = DownloadEntity(
+                id = 101L,
+                url = "https://releases.ubuntu.com/24.04/ubuntu-24.04-desktop-amd64.iso",
+                fileName = "ubuntu-24.04-desktop-amd64.iso",
+                filePath = "/storage/emulated/0/Download/ubuntu-24.04.iso",
+                fileSize = 2576980377L,
+                downloadedBytes = 2576980377L,
+                status = DownloadStatus.COMPLETED,
+                progress = 100.0f,
+                speed = 0L,
+                eta = 0L,
+                priority = DownloadPriority.HIGH,
+                checksumType = "SHA-256",
+                checksumValue = "8897598801d6abf39a7b9736e67613b5",
+                actualChecksum = "8897598801d6abf39a7b9736e67613b5",
+                createdAt = System.currentTimeMillis() - 3600000L,
+                completedAt = System.currentTimeMillis() - 60000L
+            ),
+            speedHistory = listOf(
+                SpeedSample(1L, 1200000L),
+                SpeedSample(2L, 2500000L),
+                SpeedSample(3L, 4800000L),
+                SpeedSample(4L, 6200000L),
+                SpeedSample(5L, 0L)
+            ),
+            manualChecksum = null
+        )
+    }
+}
+
+@Preview(name = "Download Details Active Dark", showBackground = true)
+@Composable
+private fun DownloadDetailsActiveDarkPreview() {
+    PegionTheme(themeMode = AppThemeMode.DARK, dynamicColor = false) {
+        DownloadDetailsContent(
+            item = DownloadEntity(
+                id = 102L,
+                url = "https://example.com/large_dataset.tar.gz",
+                fileName = "scientific_dataset_2026.tar.gz",
+                filePath = "/storage/emulated/0/Download/dataset.tar.gz",
+                fileSize = 5000000000L,
+                downloadedBytes = 3200000000L,
+                status = DownloadStatus.DOWNLOADING,
+                progress = 64.0f,
+                speed = 4200000L,
+                eta = 428L,
+                priority = DownloadPriority.NORMAL,
+                createdAt = System.currentTimeMillis() - 1800000L
+            ),
+            speedHistory = listOf(
+                SpeedSample(1L, 1500000L),
+                SpeedSample(2L, 3000000L),
+                SpeedSample(3L, 3800000L),
+                SpeedSample(4L, 4200000L),
+                SpeedSample(5L, 4100000L)
+            ),
+            manualChecksum = null
+        )
     }
 }

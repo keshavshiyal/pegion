@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,7 +55,10 @@ import com.example.ui.components.DeleteConfirmDialog
 import com.example.ui.components.DownloadCard
 import com.example.ui.components.EmptyStateView
 import com.example.ui.components.RenameDialog
+import com.example.ui.screens.home.HomeSummaryMetrics
 import com.example.ui.screens.home.HomeViewModel
+import com.example.ui.theme.AppThemeMode
+import com.example.ui.theme.PegionTheme
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,6 +88,80 @@ fun DownloadsListScreen(
         else -> DownloadFilter.ALL
     }
 
+    DownloadsListContent(
+        downloads = downloads,
+        summary = summary,
+        selectedTabIndex = selectedTabIndex,
+        onTabSelected = { index ->
+            selectedTabIndex = index
+            viewModel.onFilterSelected(
+                when (index) {
+                    0 -> DownloadFilter.ALL
+                    1 -> DownloadFilter.ACTIVE
+                    2 -> DownloadFilter.COMPLETED
+                    3 -> DownloadFilter.PAUSED
+                    else -> DownloadFilter.FAILED
+                }
+            )
+        },
+        onNavigateToDetails = onNavigateToDetails,
+        onPauseAll = { viewModel.pauseAll() },
+        onResumeAll = { viewModel.resumeAll() },
+        onClearCompleted = { viewModel.clearCompleted() },
+        onPauseDownload = { viewModel.pauseDownload(it) },
+        onResumeDownload = { viewModel.resumeDownload(it) },
+        onCancelDownload = { viewModel.cancelDownload(it) },
+        onRetryDownload = { viewModel.retryDownload(it) },
+        onDeleteRequest = { itemToDelete = it },
+        onRenameRequest = { itemToRename = it },
+        modifier = modifier
+    )
+
+    itemToRename?.let { download ->
+        RenameDialog(
+            currentName = download.fileName,
+            onDismiss = { itemToRename = null },
+            onConfirm = { newName ->
+                viewModel.renameDownload(download.id, newName)
+                itemToRename = null
+            }
+        )
+    }
+
+    itemToDelete?.let { download ->
+        DeleteConfirmDialog(
+            fileName = download.fileName,
+            onDismiss = { itemToDelete = null },
+            onConfirm = { deleteFile ->
+                viewModel.deleteDownload(download.id, deleteFile)
+                itemToDelete = null
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DownloadsListContent(
+    downloads: List<DownloadEntity>,
+    summary: HomeSummaryMetrics,
+    selectedTabIndex: Int,
+    onTabSelected: (Int) -> Unit,
+    onNavigateToDetails: (Long) -> Unit,
+    onPauseAll: () -> Unit,
+    onResumeAll: () -> Unit,
+    onClearCompleted: () -> Unit,
+    onPauseDownload: (Long) -> Unit,
+    onResumeDownload: (Long) -> Unit,
+    onCancelDownload: (Long) -> Unit,
+    onRetryDownload: (Long) -> Unit,
+    onDeleteRequest: (DownloadEntity) -> Unit,
+    onRenameRequest: (DownloadEntity) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val tabs = listOf("All", "Active", "Completed", "Paused", "Failed")
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.surface,
@@ -97,7 +175,7 @@ fun DownloadsListScreen(
                 },
                 actions = {
                     if (summary.completedCount > 0) {
-                        IconButton(onClick = { viewModel.clearCompleted() }) {
+                        IconButton(onClick = onClearCompleted) {
                             Icon(Icons.Default.DeleteSweep, contentDescription = "Clear Completed")
                         }
                     }
@@ -135,18 +213,7 @@ fun DownloadsListScreen(
                     val isSelected = selectedTabIndex == index
                     Tab(
                         selected = isSelected,
-                        onClick = {
-                            selectedTabIndex = index
-                            viewModel.onFilterSelected(
-                                when (index) {
-                                    0 -> DownloadFilter.ALL
-                                    1 -> DownloadFilter.ACTIVE
-                                    2 -> DownloadFilter.COMPLETED
-                                    3 -> DownloadFilter.PAUSED
-                                    else -> DownloadFilter.FAILED
-                                }
-                            )
-                        },
+                        onClick = { onTabSelected(index) },
                         text = {
                             Text(
                                 text = title,
@@ -177,14 +244,14 @@ fun DownloadsListScreen(
                 )
                 Row {
                     if (summary.activeCount > 0) {
-                        TextButton(onClick = { viewModel.pauseAll() }) {
+                        TextButton(onClick = onPauseAll) {
                             Icon(Icons.Default.Pause, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Pause All")
                         }
                     }
                     if (summary.pausedCount > 0) {
-                        TextButton(onClick = { viewModel.resumeAll() }) {
+                        TextButton(onClick = onResumeAll) {
                             Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Resume All")
@@ -208,12 +275,12 @@ fun DownloadsListScreen(
                         DownloadCard(
                             download = download,
                             onClick = { onNavigateToDetails(download.id) },
-                            onPause = { viewModel.pauseDownload(download.id) },
-                            onResume = { viewModel.resumeDownload(download.id) },
-                            onCancel = { viewModel.cancelDownload(download.id) },
-                            onRetry = { viewModel.retryDownload(download.id) },
-                            onDelete = { itemToDelete = download },
-                            onRename = { itemToRename = download },
+                            onPause = { onPauseDownload(download.id) },
+                            onResume = { onResumeDownload(download.id) },
+                            onCancel = { onCancelDownload(download.id) },
+                            onRetry = { onRetryDownload(download.id) },
+                            onDelete = { onDeleteRequest(download) },
+                            onRename = { onRenameRequest(download) },
                             onOpen = { openFile(context, download.filePath) },
                             onShare = { shareFile(context, download.filePath) },
                             onCopyUrl = {
@@ -226,28 +293,6 @@ fun DownloadsListScreen(
                 }
             }
         }
-    }
-
-    itemToRename?.let { download ->
-        RenameDialog(
-            currentName = download.fileName,
-            onDismiss = { itemToRename = null },
-            onConfirm = { newName ->
-                viewModel.renameDownload(download.id, newName)
-                itemToRename = null
-            }
-        )
-    }
-
-    itemToDelete?.let { download ->
-        DeleteConfirmDialog(
-            fileName = download.fileName,
-            onDismiss = { itemToDelete = null },
-            onConfirm = { deleteFile ->
-                viewModel.deleteDownload(download.id, deleteFile)
-                itemToDelete = null
-            }
-        )
     }
 }
 
@@ -285,5 +330,103 @@ private fun shareFile(context: Context, filePath: String) {
         context.startActivity(Intent.createChooser(intent, "Share file via…"))
     } catch (_: Exception) {
         Toast.makeText(context, "Could not share file", Toast.LENGTH_SHORT).show()
+    }
+}
+
+@Preview(name = "Queue Screen Light", showBackground = true)
+@Composable
+private fun DownloadsListLightPreview() {
+    PegionTheme(dynamicColor = false) {
+        DownloadsListContent(
+            downloads = listOf(
+                DownloadEntity(
+                    id = 1L,
+                    url = "https://example.com/archlinux-x86_64.iso",
+                    fileName = "archlinux-2026.09-x86_64.iso",
+                    filePath = "/storage/downloads/archlinux.iso",
+                    fileSize = 1200000000L,
+                    downloadedBytes = 720000000L,
+                    status = DownloadStatus.DOWNLOADING,
+                    progress = 60.0f,
+                    speed = 4500000L,
+                    eta = 106L
+                ),
+                DownloadEntity(
+                    id = 2L,
+                    url = "https://example.com/flutter_sdk.zip",
+                    fileName = "flutter_linux_3.24.0-stable.tar.xz",
+                    filePath = "/storage/downloads/flutter_sdk.zip",
+                    fileSize = 850000000L,
+                    downloadedBytes = 850000000L,
+                    status = DownloadStatus.COMPLETED,
+                    progress = 100.0f,
+                    speed = 0L,
+                    eta = 0L
+                )
+            ),
+            summary = HomeSummaryMetrics(
+                activeCount = 1,
+                completedCount = 1,
+                pausedCount = 0,
+                failedCount = 0,
+                totalBytesDownloaded = 1570000000L,
+                globalSpeed = 4500000L
+            ),
+            selectedTabIndex = 0,
+            onTabSelected = {},
+            onNavigateToDetails = {},
+            onPauseAll = {},
+            onResumeAll = {},
+            onClearCompleted = {},
+            onPauseDownload = {},
+            onResumeDownload = {},
+            onCancelDownload = {},
+            onRetryDownload = {},
+            onDeleteRequest = {},
+            onRenameRequest = {}
+        )
+    }
+}
+
+@Preview(name = "Queue Screen Dark", showBackground = true)
+@Composable
+private fun DownloadsListDarkPreview() {
+    PegionTheme(themeMode = AppThemeMode.DARK, dynamicColor = false) {
+        DownloadsListContent(
+            downloads = listOf(
+                DownloadEntity(
+                    id = 2L,
+                    url = "https://example.com/flutter_sdk.zip",
+                    fileName = "flutter_linux_3.24.0-stable.tar.xz",
+                    filePath = "/storage/downloads/flutter_sdk.zip",
+                    fileSize = 850000000L,
+                    downloadedBytes = 850000000L,
+                    status = DownloadStatus.COMPLETED,
+                    progress = 100.0f,
+                    speed = 0L,
+                    eta = 0L
+                )
+            ),
+            summary = HomeSummaryMetrics(
+                activeCount = 0,
+                completedCount = 1,
+                pausedCount = 0,
+                failedCount = 0,
+                totalBytesDownloaded = 850000000L,
+                globalSpeed = 0L
+            ),
+            selectedTabIndex = 2,
+            onTabSelected = {},
+            onNavigateToDetails = {},
+            onPauseAll = {},
+            onResumeAll = {},
+            onClearCompleted = {},
+            onPauseDownload = {},
+            onResumeDownload = {},
+            onCancelDownload = {},
+            onRetryDownload = {},
+            onDeleteRequest = {},
+            onRenameRequest = {}
+        )
     }
 }

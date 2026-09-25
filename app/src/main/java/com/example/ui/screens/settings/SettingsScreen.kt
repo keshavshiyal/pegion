@@ -59,8 +59,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.datastore.UserPreferences
+import com.example.ui.theme.AppThemeMode
+import com.example.ui.theme.PegionTheme
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,229 +83,30 @@ fun SettingsScreen(
     var exportJsonText by remember { mutableStateOf("") }
     var importJsonText by remember { mutableStateOf("") }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.surface,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text("Settings", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Category: Network & Queue
-            SettingsSectionHeader(title = "Network & Queue")
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    // Wi-Fi only
-                    SettingsSwitchRow(
-                        icon = Icons.Default.Wifi,
-                        title = "Wi-Fi Only",
-                        description = "Download only when connected to unmetered Wi-Fi",
-                        checked = preferences.wifiOnly,
-                        onCheckedChange = { viewModel.setWifiOnly(it) }
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-                    // Charging only
-                    SettingsSwitchRow(
-                        icon = Icons.Default.BatteryChargingFull,
-                        title = "Charging Only",
-                        description = "Download only when device is plugged in",
-                        checked = preferences.chargingOnly,
-                        onCheckedChange = { viewModel.setChargingOnly(it) }
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-                    // Max Concurrent Downloads
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Max Concurrent Downloads", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
-                            Text(
-                                text = "${preferences.maxConcurrent}",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        Slider(
-                            value = preferences.maxConcurrent.toFloat(),
-                            onValueChange = { viewModel.setMaxConcurrent(it.toInt()) },
-                            valueRange = 1f..5f,
-                            steps = 3,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-                    // Global Speed Limit
-                    Column {
-                        val limitLabel = when {
-                            preferences.speedLimitKbps <= 0 -> "Unlimited"
-                            preferences.speedLimitKbps >= 1024 -> "${preferences.speedLimitKbps / 1024} MB/s"
-                            else -> "${preferences.speedLimitKbps} KB/s"
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Global Speed Limit", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
-                            }
-                            Text(
-                                text = limitLabel,
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        // Presets
-                        val currentKbps = preferences.speedLimitKbps
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            listOf(0L to "Unlimited", 512L to "512K", 1024L to "1M", 2048L to "2M", 5120L to "5M").forEach { (kb, label) ->
-                                FilterChip(
-                                    selected = currentKbps == kb,
-                                    onClick = { viewModel.setSpeedLimitKbps(kb) },
-                                    label = { Text(label, style = MaterialTheme.typography.labelSmall) }
-                                )
-                            }
-                        }
-                    }
-                }
+    SettingsContent(
+        preferences = preferences,
+        onWifiOnlyChange = { viewModel.setWifiOnly(it) },
+        onChargingOnlyChange = { viewModel.setChargingOnly(it) },
+        onMaxConcurrentChange = { viewModel.setMaxConcurrent(it) },
+        onSpeedLimitChange = { viewModel.setSpeedLimitKbps(it) },
+        onClipboardDetectionChange = { viewModel.setClipboardDetection(it) },
+        onNotificationsEnabledChange = { viewModel.setNotificationsEnabled(it) },
+        onThemeModeChange = { viewModel.setThemeMode(it) },
+        onExportClick = {
+            coroutineScope.launch {
+                exportJsonText = viewModel.exportJson()
+                showExportDialog = true
             }
-
-            // Category: Automation & Clipboard
-            SettingsSectionHeader(title = "Automation")
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    SettingsSwitchRow(
-                        icon = Icons.Default.Link,
-                        title = "Clipboard Link Detection",
-                        description = "Auto-detect copied URLs when app is opened",
-                        checked = preferences.clipboardDetection,
-                        onCheckedChange = { viewModel.setClipboardDetection(it) }
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-                    SettingsSwitchRow(
-                        icon = Icons.Default.Notifications,
-                        title = "Show Progress Notifications",
-                        description = "Persistent notification with controls while downloading",
-                        checked = preferences.notificationsEnabled,
-                        onCheckedChange = { viewModel.setNotificationsEnabled(it) }
-                    )
-                }
-            }
-
-            // Category: Appearance & Theme
-            SettingsSectionHeader(title = "Appearance")
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.DarkMode, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Theme Mode", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        listOf("SYSTEM" to "System", "LIGHT" to "Light", "DARK" to "Dark", "AMOLED" to "AMOLED").forEach { (mode, label) ->
-                            FilterChip(
-                                selected = preferences.themeMode == mode,
-                                onClick = { viewModel.setThemeMode(mode) },
-                                label = { Text(label, style = MaterialTheme.typography.labelSmall) }
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Category: Backup & Maintenance
-            SettingsSectionHeader(title = "Backup & Data")
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilledTonalButton(
-                            onClick = {
-                                coroutineScope.launch {
-                                    exportJsonText = viewModel.exportJson()
-                                    showExportDialog = true
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Export Settings")
-                        }
-                        FilledTonalButton(
-                            onClick = {
-                                importJsonText = ""
-                                showImportDialog = true
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Import Settings")
-                        }
-                    }
-
-                    Button(
-                        onClick = { showClearHistoryDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.error
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Clear All Download History")
-                    }
-                }
-            }
-        }
-    }
+        },
+        onImportClick = {
+            importJsonText = ""
+            showImportDialog = true
+        },
+        onClearHistoryClick = {
+            showClearHistoryDialog = true
+        },
+        modifier = modifier
+    )
 
     // Clear History Dialog
     if (showClearHistoryDialog) {
@@ -406,6 +211,239 @@ fun SettingsScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsContent(
+    preferences: UserPreferences,
+    onWifiOnlyChange: (Boolean) -> Unit,
+    onChargingOnlyChange: (Boolean) -> Unit,
+    onMaxConcurrentChange: (Int) -> Unit,
+    onSpeedLimitChange: (Long) -> Unit,
+    onClipboardDetectionChange: (Boolean) -> Unit,
+    onNotificationsEnabledChange: (Boolean) -> Unit,
+    onThemeModeChange: (String) -> Unit,
+    onExportClick: () -> Unit,
+    onImportClick: () -> Unit,
+    onClearHistoryClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.surface,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text("Settings", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Category: Network & Queue
+            SettingsSectionHeader(title = "Network & Queue")
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    // Wi-Fi only
+                    SettingsSwitchRow(
+                        icon = Icons.Default.Wifi,
+                        title = "Wi-Fi Only",
+                        description = "Download only when connected to unmetered Wi-Fi",
+                        checked = preferences.wifiOnly,
+                        onCheckedChange = onWifiOnlyChange
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    // Charging only
+                    SettingsSwitchRow(
+                        icon = Icons.Default.BatteryChargingFull,
+                        title = "Charging Only",
+                        description = "Download only when device is plugged in",
+                        checked = preferences.chargingOnly,
+                        onCheckedChange = onChargingOnlyChange
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    // Max Concurrent Downloads
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Max Concurrent Downloads", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+                            Text(
+                                text = "${preferences.maxConcurrent}",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Slider(
+                            value = preferences.maxConcurrent.toFloat(),
+                            onValueChange = { onMaxConcurrentChange(it.toInt()) },
+                            valueRange = 1f..5f,
+                            steps = 3,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    // Global Speed Limit
+                    Column {
+                        val limitLabel = when {
+                            preferences.speedLimitKbps <= 0 -> "Unlimited"
+                            preferences.speedLimitKbps >= 1024 -> "${preferences.speedLimitKbps / 1024} MB/s"
+                            else -> "${preferences.speedLimitKbps} KB/s"
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Global Speed Limit", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+                            }
+                            Text(
+                                text = limitLabel,
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        // Presets
+                        val currentKbps = preferences.speedLimitKbps
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(0L to "Unlimited", 512L to "512K", 1024L to "1M", 2048L to "2M", 5120L to "5M").forEach { (kb, label) ->
+                                FilterChip(
+                                    selected = currentKbps == kb,
+                                    onClick = { onSpeedLimitChange(kb) },
+                                    label = { Text(label, style = MaterialTheme.typography.labelSmall) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Category: Automation & Clipboard
+            SettingsSectionHeader(title = "Automation")
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    SettingsSwitchRow(
+                        icon = Icons.Default.Link,
+                        title = "Clipboard Link Detection",
+                        description = "Auto-detect copied URLs when app is opened",
+                        checked = preferences.clipboardDetection,
+                        onCheckedChange = onClipboardDetectionChange
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    SettingsSwitchRow(
+                        icon = Icons.Default.Notifications,
+                        title = "Show Progress Notifications",
+                        description = "Persistent notification with controls while downloading",
+                        checked = preferences.notificationsEnabled,
+                        onCheckedChange = onNotificationsEnabledChange
+                    )
+                }
+            }
+
+            // Category: Appearance & Theme
+            SettingsSectionHeader(title = "Appearance")
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.DarkMode, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Theme Mode", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("SYSTEM" to "System", "LIGHT" to "Light", "DARK" to "Dark", "AMOLED" to "AMOLED").forEach { (mode, label) ->
+                            FilterChip(
+                                selected = preferences.themeMode == mode,
+                                onClick = { onThemeModeChange(mode) },
+                                label = { Text(label, style = MaterialTheme.typography.labelSmall) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Category: Backup & Maintenance
+            SettingsSectionHeader(title = "Backup & Data")
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilledTonalButton(
+                            onClick = onExportClick,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Export Settings")
+                        }
+                        FilledTonalButton(
+                            onClick = onImportClick,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Import Settings")
+                        }
+                    }
+
+                    Button(
+                        onClick = onClearHistoryClick,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Clear All Download History")
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun SettingsSectionHeader(title: String) {
     Text(
@@ -446,3 +484,62 @@ fun SettingsSwitchRow(
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
+
+@Preview(name = "Settings Screen Light", showBackground = true)
+@Composable
+private fun SettingsScreenLightPreview() {
+    PegionTheme(dynamicColor = false) {
+        SettingsContent(
+            preferences = UserPreferences(
+                wifiOnly = true,
+                chargingOnly = false,
+                maxConcurrent = 3,
+                speedLimitKbps = 1024L,
+                themeMode = "SYSTEM",
+                downloadFolder = "Pegion",
+                clipboardDetection = true,
+                notificationsEnabled = true
+            ),
+            onWifiOnlyChange = {},
+            onChargingOnlyChange = {},
+            onMaxConcurrentChange = {},
+            onSpeedLimitChange = {},
+            onClipboardDetectionChange = {},
+            onNotificationsEnabledChange = {},
+            onThemeModeChange = {},
+            onExportClick = {},
+            onImportClick = {},
+            onClearHistoryClick = {}
+        )
+    }
+}
+
+@Preview(name = "Settings Screen Dark", showBackground = true)
+@Composable
+private fun SettingsScreenDarkPreview() {
+    PegionTheme(themeMode = AppThemeMode.DARK, dynamicColor = false) {
+        SettingsContent(
+            preferences = UserPreferences(
+                wifiOnly = false,
+                chargingOnly = true,
+                maxConcurrent = 2,
+                speedLimitKbps = 2048L,
+                themeMode = "DARK",
+                downloadFolder = "Pegion",
+                clipboardDetection = true,
+                notificationsEnabled = true
+            ),
+            onWifiOnlyChange = {},
+            onChargingOnlyChange = {},
+            onMaxConcurrentChange = {},
+            onSpeedLimitChange = {},
+            onClipboardDetectionChange = {},
+            onNotificationsEnabledChange = {},
+            onThemeModeChange = {},
+            onExportClick = {},
+            onImportClick = {},
+            onClearHistoryClick = {}
+        )
+    }
+}
+
