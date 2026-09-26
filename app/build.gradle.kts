@@ -69,14 +69,7 @@ android {
       }
     }
     debug {
-      val debugKeystoreFile = System.getenv("DEBUG_KEYSTORE_FILE")
-      signingConfig = if (!debugKeystoreFile.isNullOrEmpty()) {
-        signingConfigs.getByName("ciDebug")
-      } else if (file("${rootDir}/debug.keystore").exists()) {
-        signingConfigs.getByName("debugConfig")
-      } else {
-        signingConfigs.getByName("debug")
-      }
+      signingConfig = signingConfigs.getByName("debugConfig")
     }
   }
   compileOptions {
