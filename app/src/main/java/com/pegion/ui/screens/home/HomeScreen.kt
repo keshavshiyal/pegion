@@ -88,8 +88,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pegion.data.local.entity.DownloadEntity
 import com.pegion.download.model.DownloadFilter
 import com.pegion.download.model.DownloadPriority
+import com.pegion.download.model.DownloadSegment
 import com.pegion.download.model.DownloadSortOrder
 import com.pegion.download.model.DownloadStatus
+import com.pegion.download.model.LiveDownloadStats
 import com.pegion.ui.components.AddDownloadDialog
 import com.pegion.ui.components.BatchDownloadDialog
 import com.pegion.ui.components.ClipboardBanner

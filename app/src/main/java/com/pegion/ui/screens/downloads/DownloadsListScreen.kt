@@ -50,7 +50,9 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pegion.data.local.entity.DownloadEntity
 import com.pegion.download.model.DownloadFilter
+import com.pegion.download.model.DownloadSegment
 import com.pegion.download.model.DownloadStatus
+import com.pegion.download.model.LiveDownloadStats
 import com.pegion.ui.components.DeleteConfirmDialog
 import com.pegion.ui.components.DownloadCard
 import com.pegion.ui.components.EmptyStateView
@@ -146,7 +148,7 @@ fun DownloadsListScreen(
 @Composable
 fun DownloadsListContent(
     downloads: List<DownloadEntity>,
-    liveStats: Map<Long, com.pegion.download.model.LiveDownloadStats> = emptyMap(),
+    liveStats: Map<Long, LiveDownloadStats> = emptyMap(),
     summary: HomeSummaryMetrics,
     selectedTabIndex: Int,
     onTabSelected: (Int) -> Unit,

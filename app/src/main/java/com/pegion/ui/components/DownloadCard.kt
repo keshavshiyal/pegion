@@ -4,12 +4,14 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -63,6 +65,7 @@ import androidx.compose.ui.unit.sp
 import com.pegion.data.local.entity.DownloadEntity
 import com.pegion.download.model.ChecksumType
 import com.pegion.download.model.DownloadPriority
+import com.pegion.download.model.DownloadSegment
 import com.pegion.download.model.DownloadStatus
 import com.pegion.ui.theme.AppThemeMode
 import com.pegion.ui.theme.PegionTheme
@@ -93,7 +96,7 @@ fun DownloadCard(
     onShare: () -> Unit,
     onCopyUrl: () -> Unit,
     modifier: Modifier = Modifier,
-    segments: List<com.pegion.download.model.DownloadSegment>? = null
+    segments: List<DownloadSegment>? = null
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -247,7 +250,7 @@ fun DownloadCard(
             // Thicker, expressive progress indicator (Segmented or Linear)
             if (download.status != DownloadStatus.COMPLETED) {
                 if (segments != null && segments.isNotEmpty() && download.status == DownloadStatus.DOWNLOADING) {
-                    androidx.compose.foundation.layout.Row(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(8.dp)

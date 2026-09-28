@@ -11,8 +11,10 @@ import com.pegion.data.local.entity.DownloadEntity
 import com.pegion.data.repository.DownloadRepository
 import com.pegion.download.model.DownloadFilter
 import com.pegion.download.model.DownloadPriority
+import com.pegion.download.model.DownloadSegment
 import com.pegion.download.model.DownloadSortOrder
 import com.pegion.download.model.DownloadStatus
+import com.pegion.download.model.LiveDownloadStats
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

@@ -70,10 +70,13 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pegion.data.local.entity.DownloadEntity
 import com.pegion.download.model.DownloadPriority
+import com.pegion.download.model.DownloadSegment
 import com.pegion.download.model.DownloadStatus
+import com.pegion.download.model.LiveDownloadStats
 import com.pegion.download.model.SpeedSample
 import com.pegion.ui.components.DeleteConfirmDialog
 import com.pegion.ui.components.PriorityBadge
+import com.pegion.ui.components.SegmentedProgressVisualizer
 import com.pegion.ui.components.SpeedHistoryChart
 import com.pegion.ui.components.StatusBadge
 import com.pegion.ui.components.formatBytes
@@ -146,7 +149,7 @@ fun DownloadDetailsScreen(
 @Composable
 fun DownloadDetailsContent(
     item: DownloadEntity,
-    segments: List<com.pegion.download.model.DownloadSegment> = emptyList(),
+    segments: List<DownloadSegment> = emptyList(),
     speedHistory: List<SpeedSample> = emptyList(),
     manualChecksum: String? = null,
     onNavigateBack: () -> Unit = {},
@@ -394,7 +397,7 @@ fun DownloadDetailsContent(
 
             // Parallel Multi-Segment Visualizer
             if (segments.isNotEmpty()) {
-                com.pegion.ui.components.SegmentedProgressVisualizer(
+                SegmentedProgressVisualizer(
                     segments = segments,
                     status = item.status
                 )
