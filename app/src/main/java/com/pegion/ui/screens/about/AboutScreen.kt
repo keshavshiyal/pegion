@@ -3,6 +3,7 @@ package com.pegion.ui.screens.about
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,12 +42,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pegion.R
 import com.pegion.ui.theme.AppThemeMode
 import com.pegion.ui.theme.PegionTheme
 
@@ -77,12 +81,13 @@ fun AboutScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // App Emblem
-            Icon(
-                imageVector = Icons.Default.Download,
+            // App Emblem (Logo)
+            Image(
+                painter = painterResource(id = R.drawable.ic_logo),
                 contentDescription = "Pegion Logo",
-                modifier = Modifier.size(96.dp),
-                tint = MaterialTheme.colorScheme.primary
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(20.dp))
             )
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

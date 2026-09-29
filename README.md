@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🕊️ Pegion (Pigeon)
+<img src="art/logo.png" alt="Pegion Logo" width="140" />
+
+# Pegion
 ### Native, Blazing-Fast & Privacy-First Android Download Manager
 
 *Always delivers. Fast, robust, resume-ready downloads with speed controls, queues, and checksum verification.*
