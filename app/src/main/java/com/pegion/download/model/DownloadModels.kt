@@ -67,3 +67,12 @@ data class LiveDownloadStats(
     val eta: Long,
     val segments: List<DownloadSegment> = emptyList()
 )
+
+data class UrlProbeResult(
+    val contentLength: Long = -1L,
+    val supportsRanges: Boolean = false,
+    val suggestedFileName: String? = null,
+    val mimeType: String? = null,
+    val isSuccess: Boolean = true,
+    val errorMessage: String? = null
+)

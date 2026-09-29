@@ -12,6 +12,7 @@ import com.pegion.download.model.DownloadSegment
 import com.pegion.download.model.DownloadStatus
 import com.pegion.download.model.LiveDownloadStats
 import com.pegion.download.model.SpeedSample
+import com.pegion.download.model.UrlProbeResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -218,6 +219,96 @@ class DownloadEngine(
                     startDownload(pending.id)
                 }
             }
+        }
+    }
+
+    suspend fun probeUrl(url: String): UrlProbeResult = withContext(Dispatchers.IO) {
+        try {
+            var contentLength = -1L
+            var supportsRanges = false
+            var mimeType: String? = null
+            var suggestedFileName: String? = null
+
+            // 1. Try HEAD request
+            try {
+                val headRequest = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "Pegion/1.0 (Android; Always delivers)")
+                    .head()
+                    .build()
+
+                okHttpClient.newCall(headRequest).execute().use { response ->
+                    if (response.isSuccessful) {
+                        contentLength = response.header("Content-Length")?.toLongOrNull() ?: -1L
+                        val acceptRanges = response.header("Accept-Ranges")
+                        supportsRanges = acceptRanges?.equals("bytes", ignoreCase = true) == true
+                        mimeType = response.header("Content-Type")
+                        val disposition = response.header("Content-Disposition")
+                        if (!disposition.isNullOrBlank()) {
+                            suggestedFileName = parseContentDispositionFilename(disposition)
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+
+            // 2. Try 1-byte Range probe request
+            try {
+                val probeRequest = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", "Pegion/1.0 (Android; Always delivers)")
+                    .header("Range", "bytes=0-0")
+                    .build()
+
+                okHttpClient.newCall(probeRequest).execute().use { response ->
+                    if (response.code == 206) {
+                        supportsRanges = true
+                        val contentRange = response.header("Content-Range")
+                        if (contentRange != null && contentRange.contains("/")) {
+                            val totalStr = contentRange.substringAfter("/")
+                            contentLength = totalStr.toLongOrNull() ?: contentLength
+                        }
+                        if (mimeType == null) {
+                            mimeType = response.header("Content-Type")
+                        }
+                        if (suggestedFileName == null) {
+                            val disposition = response.header("Content-Disposition")
+                            if (!disposition.isNullOrBlank()) {
+                                suggestedFileName = parseContentDispositionFilename(disposition)
+                            }
+                        }
+                    } else if (response.isSuccessful && contentLength <= 0) {
+                        contentLength = response.body?.contentLength() ?: -1L
+                    }
+                }
+            } catch (_: Exception) {}
+
+            if (suggestedFileName.isNullOrBlank()) {
+                suggestedFileName = resolveFileName(url, null)
+            }
+
+            UrlProbeResult(
+                contentLength = contentLength,
+                supportsRanges = supportsRanges,
+                suggestedFileName = suggestedFileName,
+                mimeType = mimeType,
+                isSuccess = true
+            )
+        } catch (e: Exception) {
+            UrlProbeResult(
+                suggestedFileName = resolveFileName(url, null),
+                isSuccess = false,
+                errorMessage = e.localizedMessage ?: "Failed to probe server"
+            )
+        }
+    }
+
+    private fun parseContentDispositionFilename(disposition: String): String? {
+        return try {
+            val regex = Regex("""filename\*?=['"]?(?:UTF-\d['"]*)?([^'";\n]+)['"]?""", RegexOption.IGNORE_CASE)
+            val match = regex.find(disposition)
+            match?.groupValues?.get(1)?.trim()
+        } catch (_: Exception) {
+            null
         }
     }
 

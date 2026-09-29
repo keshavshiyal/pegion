@@ -194,6 +194,10 @@ class HomeViewModel(
         return repository.isDuplicateUrl(url)
     }
 
+    suspend fun probeUrl(url: String): com.pegion.download.model.UrlProbeResult {
+        return repository.probeUrl(url)
+    }
+
     fun addDownload(
         url: String,
         fileName: String?,

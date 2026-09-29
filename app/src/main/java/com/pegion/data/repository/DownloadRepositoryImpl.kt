@@ -114,4 +114,7 @@ class DownloadRepositoryImpl(
 
     override fun getSpeedHistory(id: Long): List<SpeedSample> =
         downloadEngine.getSpeedHistory(id)
+
+    override suspend fun probeUrl(url: String): com.pegion.download.model.UrlProbeResult =
+        downloadEngine.probeUrl(url)
 }

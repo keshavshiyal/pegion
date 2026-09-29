@@ -249,7 +249,7 @@ fun DownloadCard(
 
             // Thicker, expressive progress indicator (Segmented or Linear)
             if (download.status != DownloadStatus.COMPLETED) {
-                if (segments != null && segments.isNotEmpty() && download.status == DownloadStatus.DOWNLOADING) {
+                if (segments != null && segments.isNotEmpty() && (download.status == DownloadStatus.DOWNLOADING || download.status == DownloadStatus.PAUSED)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -267,7 +267,11 @@ fun DownloadCard(
                                     .background(MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 if (segProgress > 0f) {
-                                    val barColor = if (seg.isFinished) StatusCompleted else statusFgColor
+                                    val barColor = when {
+                                        seg.isFinished -> StatusCompleted
+                                        download.status == DownloadStatus.PAUSED -> StatusPaused
+                                        else -> statusFgColor
+                                    }
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth(segProgress)
@@ -345,13 +349,31 @@ fun DownloadCard(
                     )
 
                     if (download.status == DownloadStatus.DOWNLOADING && download.speed > 0) {
-                        Text(
-                            text = "${formatSpeed(download.speed)} • ETA ${formatEta(download.eta)}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                            color = statusFgColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            if (segments != null && segments.isNotEmpty()) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                                ) {
+                                    Text(
+                                        text = "${segments.size}T",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "${formatSpeed(download.speed)} • ETA ${formatEta(download.eta)}",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = statusFgColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     } else if (download.errorMessage != null && download.status == DownloadStatus.FAILED) {
                         Text(
                             text = download.errorMessage,

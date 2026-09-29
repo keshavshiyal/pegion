@@ -431,7 +431,7 @@ fun HomeScreen(
         }
     }
 
-    // Add Single Download Dialog
+    // Add Single Download Modal Bottom Sheet with auto-probing
     if (showAddDialog) {
         AddDownloadDialog(
             initialUrl = addDialogInitialUrl,
@@ -440,7 +440,8 @@ fun HomeScreen(
                 viewModel.addDownload(url, fileName, priority, checksumType, checksumValue, speedLimit)
                 showAddDialog = false
             },
-            checkDuplicate = { url -> viewModel.isDuplicate(url) }
+            checkDuplicate = { url -> viewModel.isDuplicate(url) },
+            probeUrl = { url -> viewModel.probeUrl(url) }
         )
     }
 
