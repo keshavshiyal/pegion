@@ -29,6 +29,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.ConnectionPool
+import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
@@ -58,9 +59,13 @@ class DownloadEngine(
     private val _totalSpeedFlow = MutableStateFlow(0L)
     val totalSpeedFlow: StateFlow<Long> = _totalSpeedFlow.asStateFlow()
 
-    // Highly optimized OkHttp client with connection pooling and HTTP/2
+    // Highly optimized OkHttp client with connection pooling, high concurrency, and HTTP/2
     private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
-        .connectionPool(ConnectionPool(10, 5, TimeUnit.MINUTES))
+        .dispatcher(Dispatcher().apply {
+            maxRequests = 64
+            maxRequestsPerHost = 24
+        })
+        .connectionPool(ConnectionPool(16, 5, TimeUnit.MINUTES))
         .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -468,69 +473,123 @@ class DownloadEngine(
             }
         }
 
-        // Parallel segment download workers
+        // Parallel segment download workers with automatic retry and error recovery
         val workers = existingSegments.map { segEntity ->
             async(Dispatchers.IO) {
                 if (segEntity.isFinished) return@async
 
-                val currentOffset = segEntity.startByte + segEntity.downloadedBytes
+                var segDownloaded = segEntity.downloadedBytes
+                var currentOffset = segEntity.startByte + segDownloaded
                 if (currentOffset > segEntity.endByte) {
                     liveSegments[segEntity.segmentIndex] = liveSegments[segEntity.segmentIndex]!!.copy(isFinished = true)
                     return@async
                 }
 
-                val segRequest = Request.Builder()
-                    .url(entity.url)
-                    .header("User-Agent", "Pegion/1.0 (Android; Always delivers)")
-                    .header("Range", "bytes=$currentOffset-${segEntity.endByte}")
-                    .build()
+                var attempts = 0
+                val maxAttempts = 3
+                var success = false
 
-                val response = okHttpClient.newCall(segRequest).execute()
-                if (!response.isSuccessful && response.code != 206) {
-                    response.close()
-                    throw java.io.IOException("Segment ${segEntity.segmentIndex} failed with HTTP ${response.code}")
-                }
+                while (attempts < maxAttempts && !success) {
+                    if (!isActive || !activeJobs.containsKey(downloadId)) break
 
-                val body = response.body ?: throw java.io.IOException("Empty segment body")
-                val inputStream: InputStream = body.byteStream()
-                val buffer = ByteArray(64 * 1024) // 64KB buffer for high throughput
+                    currentOffset = segEntity.startByte + segDownloaded
+                    if (currentOffset > segEntity.endByte) {
+                        liveSegments[segEntity.segmentIndex] = liveSegments[segEntity.segmentIndex]!!.copy(isFinished = true)
+                        success = true
+                        break
+                    }
 
-                RandomAccessFile(targetFile, "rw").use { raf ->
-                    raf.seek(currentOffset)
-                    var bytesRead: Int
-                    var segDownloaded = segEntity.downloadedBytes
+                    try {
+                        val segRequest = Request.Builder()
+                            .url(entity.url)
+                            .header("User-Agent", "Pegion/1.0 (Android; Always delivers)")
+                            .header("Range", "bytes=$currentOffset-${segEntity.endByte}")
+                            .build()
 
-                    while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                        if (!activeJobs.containsKey(downloadId)) {
-                            break
+                        val response = okHttpClient.newCall(segRequest).execute()
+                        if (!response.isSuccessful || response.code != 206) {
+                            val code = response.code
+                            response.close()
+                            throw java.io.IOException("Segment ${segEntity.segmentIndex} failed with HTTP $code (expected 206)")
                         }
 
-                        raf.write(buffer, 0, bytesRead)
-                        segDownloaded += bytesRead
-                        transferredSinceLastTick.addAndGet(bytesRead.toLong())
+                        val body = response.body ?: throw java.io.IOException("Empty segment body")
+                        val inputStream: InputStream = body.byteStream()
+                        val buffer = ByteArray(64 * 1024) // 64KB buffer for high throughput
 
-                        if (effectiveLimitBytesPerSec > 0) {
-                            speedLimiter.throttle(bytesRead)
+                        RandomAccessFile(targetFile, "rw").use { raf ->
+                            raf.seek(currentOffset)
+                            var bytesRead: Int
+
+                            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                                if (!activeJobs.containsKey(downloadId) || !isActive) {
+                                    break
+                                }
+
+                                raf.write(buffer, 0, bytesRead)
+                                segDownloaded += bytesRead
+                                transferredSinceLastTick.addAndGet(bytesRead.toLong())
+
+                                if (effectiveLimitBytesPerSec > 0) {
+                                    speedLimiter.throttle(bytesRead)
+                                }
+
+                                val isFinished = segDownloaded >= (segEntity.endByte - segEntity.startByte + 1)
+                                liveSegments[segEntity.segmentIndex] = DownloadSegment(
+                                    segmentIndex = segEntity.segmentIndex,
+                                    startByte = segEntity.startByte,
+                                    endByte = segEntity.endByte,
+                                    downloadedBytes = segDownloaded,
+                                    isFinished = isFinished
+                                )
+                            }
                         }
+                        inputStream.close()
+                        response.close()
 
-                        val isFinished = segDownloaded >= (segEntity.endByte - segEntity.startByte + 1)
-                        liveSegments[segEntity.segmentIndex] = DownloadSegment(
-                            segmentIndex = segEntity.segmentIndex,
-                            startByte = segEntity.startByte,
-                            endByte = segEntity.endByte,
-                            downloadedBytes = segDownloaded,
-                            isFinished = isFinished
-                        )
+                        if (segDownloaded >= (segEntity.endByte - segEntity.startByte + 1)) {
+                            success = true
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        attempts++
+                        if (attempts >= maxAttempts || !isActive || !activeJobs.containsKey(downloadId)) {
+                            throw e
+                        }
+                        delay(1000L * attempts)
                     }
                 }
-                inputStream.close()
-                response.close()
             }
         }
 
-        // Await all parallel segments to complete
-        workers.awaitAll()
-        telemetryJob.cancel()
+        try {
+            // Await all parallel segments to complete
+            workers.awaitAll()
+        } finally {
+            telemetryJob.cancel()
+            // Immediate flush of latest segment metrics to Room so no progress is lost on pause/cancel
+            val finalDownloaded = liveSegments.values.sumOf { it.downloadedBytes }
+            val finalProgress = if (contentLength > 0) {
+                (finalDownloaded.toFloat() / contentLength.toFloat() * 100f).coerceIn(0f, 100f)
+            } else 0f
+            downloadDao.updateProgress(
+                id = downloadId,
+                downloadedBytes = finalDownloaded,
+                fileSize = contentLength,
+                progress = finalProgress,
+                speed = 0L,
+                eta = 0L
+            )
+            for (seg in liveSegments.values) {
+                downloadSegmentDao.updateSegmentProgress(
+                    downloadId = downloadId,
+                    segmentIndex = seg.segmentIndex,
+                    downloadedBytes = seg.downloadedBytes,
+                    isFinished = seg.isFinished
+                )
+            }
+        }
 
         // Check if user paused or cancelled
         if (!activeJobs.containsKey(downloadId)) {
@@ -652,6 +711,17 @@ class DownloadEngine(
 
         while (inputStream.read(buffer).also { bytesRead = it } != -1) {
             if (!activeJobs.containsKey(downloadId)) {
+                val currentProgress = if (totalBytes > 0) {
+                    (totalDownloaded.toFloat() / totalBytes.toFloat() * 100f).coerceIn(0f, 100f)
+                } else 0f
+                downloadDao.updateProgress(
+                    id = downloadId,
+                    downloadedBytes = totalDownloaded,
+                    fileSize = totalBytes,
+                    progress = currentProgress,
+                    speed = 0L,
+                    eta = 0L
+                )
                 randomAccessFile.close()
                 inputStream.close()
                 response.close()
