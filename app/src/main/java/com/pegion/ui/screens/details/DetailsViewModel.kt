@@ -116,13 +116,27 @@ class DetailsViewModel(
 
     fun computeChecksum(algorithm: String) {
         viewModelScope.launch {
-            val entity = download.value ?: return@launch
-            val file = File(entity.filePath)
-            if (file.exists()) {
-                val hash = ChecksumVerifier.calculateChecksum(file, algorithm)
-                _manualChecksumResult.value = "$algorithm: $hash"
-            } else {
-                _manualChecksumResult.value = "File not found on disk"
+            _manualChecksumResult.value = "Computing $algorithm…"
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val entity = download.value ?: run {
+                        _manualChecksumResult.value = "Download details not available"
+                        return@withContext
+                    }
+                    val file = File(entity.filePath)
+                    if (!file.exists()) {
+                        _manualChecksumResult.value = "File does not exist on disk"
+                        return@withContext
+                    }
+                    if (entity.status == DownloadStatus.DOWNLOADING) {
+                        _manualChecksumResult.value = "Please pause or wait for download to finish before computing hash"
+                        return@withContext
+                    }
+                    val hash = ChecksumVerifier.calculateChecksum(file, algorithm)
+                    _manualChecksumResult.value = "$algorithm: $hash"
+                } catch (e: Exception) {
+                    _manualChecksumResult.value = "Error: ${e.localizedMessage ?: "Failed to calculate checksum"}"
+                }
             }
         }
     }

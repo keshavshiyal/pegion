@@ -529,38 +529,53 @@ fun PriorityChip(
     priority: DownloadPriority,
     modifier: Modifier = Modifier
 ) {
-    val (bgColor, fgColor, text) = when (priority) {
-        DownloadPriority.HIGH -> Triple(
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
-            MaterialTheme.colorScheme.error,
-            "High"
-        )
-        DownloadPriority.LOW -> Triple(
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant,
-            "Low"
-        )
-        DownloadPriority.NORMAL -> Triple(
-            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
-            MaterialTheme.colorScheme.onSecondaryContainer,
-            "Normal"
-        )
+    val isHigh = priority == DownloadPriority.HIGH
+    val isLow = priority == DownloadPriority.LOW
+
+    val bgColor = when {
+        isHigh -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.85f)
+        isLow -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
+        else -> MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
     }
+    val fgColor = when {
+        isHigh -> MaterialTheme.colorScheme.onTertiaryContainer
+        isLow -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.onSecondaryContainer
+    }
+    val borderColor = when {
+        isHigh -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
+        else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+    }
+
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(6.dp),
         color = bgColor,
         contentColor = fgColor,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        border = BorderStroke(1.dp, borderColor),
         modifier = modifier
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 10.sp
-            ),
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
+        ) {
+            if (isHigh) {
+                Box(
+                    modifier = Modifier
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(fgColor)
+                )
+            }
+            Text(
+                text = if (isHigh) "High" else if (isLow) "Low" else "Normal",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = if (isHigh) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = 10.sp,
+                    letterSpacing = 0.2.sp
+                )
+            )
+        }
     }
 }
 

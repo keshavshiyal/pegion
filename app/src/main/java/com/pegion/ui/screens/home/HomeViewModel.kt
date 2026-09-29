@@ -157,17 +157,30 @@ class HomeViewModel(
             if (!prefs.clipboardDetection) return@launch
 
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return@launch
-            if (clipboard.hasPrimaryClip() &&
-                clipboard.primaryClipDescription?.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) == true
-            ) {
-                val item = clipboard.primaryClip?.getItemAt(0)
-                val text = item?.text?.toString()?.trim()
-                if (!text.isNullOrBlank() &&
-                    (text.startsWith("http://", ignoreCase = true) || text.startsWith("https://", ignoreCase = true)) &&
-                    text != lastDismissedClipboardUrl
-                ) {
-                    _detectedClipboardUrl.value = text
-                }
+            if (!clipboard.hasPrimaryClip()) return@launch
+
+            val clip = clipboard.primaryClip ?: return@launch
+            if (clip.itemCount == 0) return@launch
+
+            val item = clip.getItemAt(0)
+            val rawText = try {
+                item.coerceToText(context)?.toString()?.trim()
+                    ?: item.uri?.toString()?.trim()
+            } catch (_: Exception) {
+                null
+            }
+
+            if (rawText.isNullOrBlank()) return@launch
+
+            val url = if (rawText.startsWith("http://", ignoreCase = true) || rawText.startsWith("https://", ignoreCase = true)) {
+                rawText
+            } else {
+                val urlRegex = Regex("""https?://[^\s]+""", RegexOption.IGNORE_CASE)
+                urlRegex.find(rawText)?.value
+            }
+
+            if (!url.isNullOrBlank() && url != lastDismissedClipboardUrl) {
+                _detectedClipboardUrl.value = url
             }
         }
     }

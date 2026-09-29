@@ -97,9 +97,12 @@ class DownloadEngine(
         return speedHistoryMap[downloadId]?.toList() ?: emptyList()
     }
 
+    fun hasActiveJobs(): Boolean = activeJobs.isNotEmpty()
+
     fun startDownload(downloadId: Long) {
         if (activeJobs.containsKey(downloadId)) return
 
+        DownloadForegroundService.start(context)
         val job = engineScope.launch {
             processDownload(downloadId)
         }
@@ -110,6 +113,7 @@ class DownloadEngine(
         val job = activeJobs.remove(downloadId)
         job?.cancel()
         removeLiveStats(downloadId)
+        DownloadForegroundService.cancelDownloadNotification(context, downloadId)
         engineScope.launch {
             downloadDao.updateStatus(downloadId, DownloadStatus.PAUSED)
             updateTotalSpeed()
@@ -118,6 +122,7 @@ class DownloadEngine(
     }
 
     fun resumeDownload(downloadId: Long) {
+        DownloadForegroundService.start(context)
         engineScope.launch {
             downloadDao.updateStatus(downloadId, DownloadStatus.PENDING)
             triggerQueueProcessing()
@@ -128,6 +133,7 @@ class DownloadEngine(
         val job = activeJobs.remove(downloadId)
         job?.cancel()
         removeLiveStats(downloadId)
+        DownloadForegroundService.cancelDownloadNotification(context, downloadId)
         engineScope.launch {
             downloadDao.updateStatus(downloadId, DownloadStatus.CANCELLED)
             updateTotalSpeed()
@@ -136,6 +142,7 @@ class DownloadEngine(
     }
 
     fun retryDownload(downloadId: Long) {
+        DownloadForegroundService.start(context)
         engineScope.launch {
             val entity = downloadDao.getDownloadByIdSync(downloadId) ?: return@launch
             val file = File(entity.filePath)
@@ -160,6 +167,11 @@ class DownloadEngine(
         val job = activeJobs.remove(downloadId)
         job?.cancel()
         removeLiveStats(downloadId)
+        DownloadForegroundService.cancelDownloadNotification(context, downloadId)
+        try {
+            val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+            nm?.cancel(downloadId.toInt() + 2000)
+        } catch (_: Exception) {}
         engineScope.launch {
             val entity = downloadDao.getDownloadByIdSync(downloadId)
             if (deleteFileFromStorage && entity != null) {
@@ -310,6 +322,7 @@ class DownloadEngine(
         } catch (e: CancellationException) {
             activeJobs.remove(downloadId)
             removeLiveStats(downloadId)
+            DownloadForegroundService.cancelDownloadNotification(context, downloadId)
             updateTotalSpeed()
         } catch (e: Exception) {
             downloadDao.updateStatus(
@@ -319,6 +332,7 @@ class DownloadEngine(
             )
             activeJobs.remove(downloadId)
             removeLiveStats(downloadId)
+            DownloadForegroundService.cancelDownloadNotification(context, downloadId)
             updateTotalSpeed()
             triggerQueueProcessing()
         }
@@ -538,6 +552,7 @@ class DownloadEngine(
                 DownloadStatus.FAILED,
                 "Checksum mismatch! Expected: ${entity.checksumValue}, got: $actualChecksum"
             )
+            DownloadForegroundService.cancelDownloadNotification(context, downloadId)
         } else {
             downloadDao.markCompleted(
                 id = downloadId,
@@ -547,6 +562,13 @@ class DownloadEngine(
                 fileSize = contentLength
             )
             downloadSegmentDao.deleteSegmentsForDownload(downloadId)
+            DownloadForegroundService.sendCompletionNotification(
+                context = context,
+                downloadId = downloadId,
+                fileName = entity.fileName,
+                filePath = entity.filePath,
+                mimeType = entity.mimeType
+            )
         }
 
         activeJobs.remove(downloadId)
@@ -719,6 +741,7 @@ class DownloadEngine(
                 DownloadStatus.FAILED,
                 "Checksum mismatch! Expected: ${entity.checksumValue}, got: $actualChecksum"
             )
+            DownloadForegroundService.cancelDownloadNotification(context, downloadId)
         } else {
             downloadDao.markCompleted(
                 id = downloadId,
@@ -726,6 +749,13 @@ class DownloadEngine(
                 actualChecksum = actualChecksum,
                 downloadedBytes = actualDiskLength,
                 fileSize = finalFileSize
+            )
+            DownloadForegroundService.sendCompletionNotification(
+                context = context,
+                downloadId = downloadId,
+                fileName = entity.fileName,
+                filePath = entity.filePath,
+                mimeType = entity.mimeType
             )
         }
 

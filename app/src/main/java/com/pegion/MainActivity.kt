@@ -120,9 +120,32 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val clipListener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
+        homeViewModelInstance?.checkClipboard()
+    }
+
     override fun onResume() {
         super.onResume()
+        try {
+            val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            clipboard?.addPrimaryClipChangedListener(clipListener)
+        } catch (_: Exception) {}
         homeViewModelInstance?.checkClipboard()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        try {
+            val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            clipboard?.removePrimaryClipChangedListener(clipListener)
+        } catch (_: Exception) {}
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            homeViewModelInstance?.checkClipboard()
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

@@ -8,6 +8,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -152,27 +153,47 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_logo),
-                            contentDescription = "Pegion Logo",
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                        )
-                        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_logo),
+                                contentDescription = "Pegion Logo",
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .padding(3.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                            )
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             Text(
                                 text = "Pegion",
-                                style = MaterialTheme.typography.headlineLarge.copy(
+                                style = MaterialTheme.typography.titleLarge.copy(
                                     fontWeight = FontWeight.Bold,
-                                    letterSpacing = (-0.5).sp
+                                    letterSpacing = (-0.3).sp
                                 ),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            Text(
-                                text = "Always delivers.",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(50),
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.65f),
+                                border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.25f))
+                            ) {
+                                Text(
+                                    text = "Always delivers",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Medium,
+                                        letterSpacing = 0.1.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
                         }
                     }
                 },
@@ -469,6 +490,27 @@ fun GlobalSpeedHeroCard(
     onResumeAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isDownloading = summary.activeCount > 0 || summary.globalSpeed > 0
+    val infiniteTransition = rememberInfiniteTransition(label = "GlobalSpeedCircleAnim")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "CircleRotation"
+    )
+    val iconScale by infiniteTransition.animateFloat(
+        initialValue = 0.92f,
+        targetValue = 1.08f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "IconPulse"
+    )
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(22.dp),
@@ -500,20 +542,40 @@ fun GlobalSpeedHeroCard(
                         modifier = Modifier.size(64.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(
-                            progress = { if (summary.globalSpeed > 0) 0.75f else 0f },
-                            modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.primary,
-                            trackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
-                            strokeWidth = 4.5.dp,
-                            strokeCap = StrokeCap.Round
-                        )
+                        if (isDownloading) {
+                            CircularProgressIndicator(
+                                progress = { 0.72f },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer { rotationZ = rotation },
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f),
+                                strokeWidth = 4.5.dp,
+                                strokeCap = StrokeCap.Round
+                            )
+                        } else {
+                            CircularProgressIndicator(
+                                progress = { 0f },
+                                modifier = Modifier.fillMaxSize(),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.25f),
+                                strokeWidth = 4.5.dp,
+                                strokeCap = StrokeCap.Round
+                            )
+                        }
 
                         Icon(
                             imageVector = Icons.Default.Download,
                             contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = MaterialTheme.colorScheme.primary
+                            modifier = Modifier
+                                .size(28.dp)
+                                .graphicsLayer {
+                                    if (isDownloading) {
+                                        scaleX = iconScale
+                                        scaleY = iconScale
+                                    }
+                                },
+                            tint = if (isDownloading) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
                     }
 
