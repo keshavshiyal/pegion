@@ -17,7 +17,7 @@
 [![Build Status](https://img.shields.io/badge/CI%2FCD-Passing-brightgreen.svg?logo=githubactions&logoColor=white)](https://github.com/keshavshiyal/pegion/actions)
 [![Telemetry](https://img.shields.io/badge/Telemetry-Zero%20Tracking-success.svg?logo=shield&logoColor=white)](#-privacy--security-first)
 
-[**Features**](#-features) • [**Comparison**](#-how-pegion-compares) • [**Architecture**](#-architecture--tech-stack) • [**Download APK**](#-getting-started) • [**Build from Source**](#-building-from-source) • [**Roadmap**](#-roadmap)
+[**Features**](#-features) • [**Screenshots**](#-screenshots) • [**Comparison**](#-how-pegion-compares) • [**Architecture**](#-architecture--tech-stack) • [**Download APK**](#-getting-started) • [**Build from Source**](#-building-from-source) • [**Roadmap**](#-roadmap)
 
 </div>
 
@@ -33,6 +33,29 @@ Most Android download managers today are cluttered with full-screen ads, battery
 - 🛡️ **100% Private & Ad-Free:** Zero telemetry, zero analytics SDKs, zero advertising. No tracking of your downloads or network requests.
 - 🔋 **System Respectful:** Built with modern Android architecture (Coroutines, Room, Foreground Services with `DATA_SYNC`) to minimize CPU, memory, and battery consumption.
 - 🎨 **Modern & Beautiful:** Designed from the ground up using Jetpack Compose and Material 3 Expressive guidelines, complete with true AMOLED pitch-black theming.
+
+---
+
+## 📱 Screenshots
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="33%">
+        <img src="art/screenshot_home.jpg" alt="Pegion Home Screen" width="260" /><br />
+        <sub><b>Clean Home &amp; Clipboard Detection</b></sub>
+      </td>
+      <td align="center" width="33%">
+        <img src="art/screenshot_details.jpg" alt="Download Details &amp; Engine Telemetry" width="260" /><br />
+        <sub><b>Multi-Thread Engine &amp; Live Telemetry</b></sub>
+      </td>
+      <td align="center" width="33%">
+        <img src="art/screenshot_settings.jpg" alt="Settings &amp; Queue Controls" width="260" /><br />
+        <sub><b>Network, Queue &amp; Power Controls</b></sub>
+      </td>
+    </tr>
+  </table>
+</div>
 
 ---
 
