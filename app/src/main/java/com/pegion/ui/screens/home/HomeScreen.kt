@@ -154,20 +154,11 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_logo),
-                                contentDescription = "Pegion Logo",
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .padding(3.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                            )
-                        }
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_logo),
+                            contentDescription = "Pegion Logo",
+                            modifier = Modifier.size(36.dp)
+                        )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)

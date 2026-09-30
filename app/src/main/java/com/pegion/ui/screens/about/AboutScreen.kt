@@ -85,9 +85,7 @@ fun AboutScreen(
             Image(
                 painter = painterResource(id = R.drawable.ic_logo),
                 contentDescription = "Pegion Logo",
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                modifier = Modifier.size(96.dp)
             )
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
