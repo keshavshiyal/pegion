@@ -35,6 +35,8 @@ interface DownloadRepository {
     fun retryDownload(id: Long)
     fun deleteDownload(id: Long, deleteFileFromStorage: Boolean)
     suspend fun renameDownload(id: Long, newName: String)
+    suspend fun clearCompleted()
+    suspend fun clearAll()
     suspend fun updateFileSize(id: Long, size: Long)
     fun getSpeedHistory(id: Long): List<SpeedSample>
     suspend fun probeUrl(url: String): com.pegion.download.model.UrlProbeResult
