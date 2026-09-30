@@ -18,6 +18,7 @@ import com.pegion.MainActivity
 import com.pegion.PegionApp
 import com.pegion.R
 import com.pegion.download.model.LiveDownloadStats
+import com.pegion.download.storage.ScopedStorageHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -366,16 +367,7 @@ class DownloadForegroundService : Service() {
                 cancelDownloadNotification(context, downloadId)
 
                 val file = File(filePath)
-                val uri = try {
-                    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                } catch (_: Exception) {
-                    Uri.fromFile(file)
-                }
-
-                val openIntent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(uri, mimeType ?: "*/*")
-                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
-                }
+                val openIntent = ScopedStorageHelper.buildOpenFileIntent(context, file, mimeType)
                 val pendingOpen = PendingIntent.getActivity(
                     context,
                     downloadId.toInt() + 5000,

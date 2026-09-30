@@ -109,4 +109,12 @@ class ExampleUnitTest {
         val elapsed = System.currentTimeMillis() - start
         assertTrue(elapsed < 200)
     }
+
+    @Test
+    fun mime_type_resolution_handles_known_extensions() {
+        assertEquals("application/vnd.android.package-archive", com.pegion.download.storage.ScopedStorageHelper.resolveMimeType(java.io.File("app-release.apk")))
+        assertEquals("video/x-matroska", com.pegion.download.storage.ScopedStorageHelper.resolveMimeType(java.io.File("movie.mkv")))
+        assertEquals("application/pdf", com.pegion.download.storage.ScopedStorageHelper.resolveMimeType(java.io.File("document.pdf")))
+        assertEquals("application/x-7z-compressed", com.pegion.download.storage.ScopedStorageHelper.resolveMimeType(java.io.File("archive.7z")))
+    }
 }

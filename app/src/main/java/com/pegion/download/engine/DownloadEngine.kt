@@ -13,6 +13,7 @@ import com.pegion.download.model.DownloadStatus
 import com.pegion.download.model.LiveDownloadStats
 import com.pegion.download.model.SpeedSample
 import com.pegion.download.model.UrlProbeResult
+import com.pegion.download.storage.ScopedStorageHelper
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -183,9 +184,7 @@ class DownloadEngine(
             if (deleteFileFromStorage && entity != null) {
                 try {
                     val file = File(entity.filePath)
-                    if (file.exists()) {
-                        file.delete()
-                    }
+                    ScopedStorageHelper.deleteFileSafely(context, file)
                 } catch (_: Exception) {}
             }
             downloadSegmentDao.deleteSegmentsForDownload(downloadId)
@@ -712,6 +711,7 @@ class DownloadEngine(
                 fileSize = contentLength
             )
             downloadSegmentDao.deleteSegmentsForDownload(downloadId)
+            ScopedStorageHelper.scanCompletedFile(context, targetFile, entity.mimeType)
             DownloadForegroundService.sendCompletionNotification(
                 context = context,
                 downloadId = downloadId,
@@ -911,6 +911,7 @@ class DownloadEngine(
                 downloadedBytes = actualDiskLength,
                 fileSize = finalFileSize
             )
+            ScopedStorageHelper.scanCompletedFile(context, targetFile, entity.mimeType)
             DownloadForegroundService.sendCompletionNotification(
                 context = context,
                 downloadId = downloadId,

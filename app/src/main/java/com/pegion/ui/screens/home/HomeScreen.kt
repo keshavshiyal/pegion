@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import com.pegion.download.storage.ScopedStorageHelper
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -745,40 +746,11 @@ fun DockedSearchBarView(
 }
 
 private fun openFile(context: Context, filePath: String) {
-    try {
-        val file = File(filePath)
-        if (!file.exists()) {
-            Toast.makeText(context, "File does not exist on disk", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, context.contentResolver.getType(uri) ?: "*/*")
-            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
-        }
-        context.startActivity(Intent.createChooser(intent, "Open file with…"))
-    } catch (_: Exception) {
-        Toast.makeText(context, "Cannot open file: No suitable app found", Toast.LENGTH_SHORT).show()
-    }
+    ScopedStorageHelper.openFile(context, filePath)
 }
 
 private fun shareFile(context: Context, filePath: String) {
-    try {
-        val file = File(filePath)
-        if (!file.exists()) {
-            Toast.makeText(context, "File does not exist on disk", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = context.contentResolver.getType(uri) ?: "*/*"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
-        }
-        context.startActivity(Intent.createChooser(intent, "Share file via…"))
-    } catch (_: Exception) {
-        Toast.makeText(context, "Could not share file", Toast.LENGTH_SHORT).show()
-    }
+    ScopedStorageHelper.shareFile(context, filePath)
 }
 
 @Preview(name = "Global Speed Hero Light", showBackground = true)

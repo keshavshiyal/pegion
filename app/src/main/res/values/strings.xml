@@ -147,4 +147,14 @@
     <!-- General -->
     <string name="search_placeholder">Search downloads or URLs…</string>
     <string name="pull_to_refresh">Pull to refresh</string>
+
+    <!-- Quick Settings Tile & Share Target -->
+    <string name="quick_settings_tile_name">Pegion Add</string>
+    <string name="quick_settings_tile_ready">Link detected</string>
+    <string name="quick_settings_tile_idle">Clipboard empty</string>
+    <string name="quick_settings_no_clipboard">No link found in clipboard</string>
+    <string name="share_target_label">Download with Pegion</string>
+    <string name="share_no_url">No downloadable link found</string>
+    <string name="file_not_found">File does not exist on disk</string>
+    <string name="no_app_to_open">Cannot open file: No suitable app found</string>
 </resources>
