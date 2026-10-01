@@ -56,6 +56,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -100,6 +102,7 @@ fun DownloadCard(
     liveStats: LiveDownloadStats? = null
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
 
     val currentSpeed = if (download.status == DownloadStatus.DOWNLOADING) {
         liveStats?.speed ?: download.speed
@@ -414,7 +417,10 @@ fun DownloadCard(
                     when (download.status) {
                         DownloadStatus.DOWNLOADING -> {
                             FilledTonalIconButton(
-                                onClick = onPause,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onPause()
+                                },
                                 modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -428,7 +434,10 @@ fun DownloadCard(
                                 )
                             }
                             FilledTonalIconButton(
-                                onClick = onCancel,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onCancel()
+                                },
                                 modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -444,7 +453,10 @@ fun DownloadCard(
                         }
                         DownloadStatus.PAUSED, DownloadStatus.PENDING -> {
                             FilledTonalIconButton(
-                                onClick = onResume,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onResume()
+                                },
                                 modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -458,7 +470,10 @@ fun DownloadCard(
                                 )
                             }
                             FilledTonalIconButton(
-                                onClick = onCancel,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onCancel()
+                                },
                                 modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -474,7 +489,10 @@ fun DownloadCard(
                         }
                         DownloadStatus.FAILED, DownloadStatus.CANCELLED -> {
                             FilledTonalIconButton(
-                                onClick = onRetry,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onRetry()
+                                },
                                 modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -488,7 +506,10 @@ fun DownloadCard(
                                 )
                             }
                             FilledTonalIconButton(
-                                onClick = onDelete,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onDelete()
+                                },
                                 modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -504,7 +525,10 @@ fun DownloadCard(
                         }
                         DownloadStatus.COMPLETED -> {
                             FilledTonalIconButton(
-                                onClick = onOpen,
+                                onClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onOpen()
+                                },
                                 modifier = Modifier.size(40.dp),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
                                     containerColor = StatusCompletedContainer,

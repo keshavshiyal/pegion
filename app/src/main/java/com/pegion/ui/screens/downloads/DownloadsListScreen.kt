@@ -113,6 +113,7 @@ fun DownloadsListScreen(
         onPauseAll = { viewModel.pauseAll() },
         onResumeAll = { viewModel.resumeAll() },
         onClearCompleted = { viewModel.clearCompleted() },
+        onRetryAllFailed = { viewModel.retryAllFailed() },
         onPauseDownload = { viewModel.pauseDownload(it) },
         onResumeDownload = { viewModel.resumeDownload(it) },
         onCancelDownload = { viewModel.cancelDownload(it) },
@@ -157,6 +158,7 @@ fun DownloadsListContent(
     onPauseAll: () -> Unit,
     onResumeAll: () -> Unit,
     onClearCompleted: () -> Unit,
+    onRetryAllFailed: () -> Unit,
     onPauseDownload: (Long) -> Unit,
     onResumeDownload: (Long) -> Unit,
     onCancelDownload: (Long) -> Unit,
@@ -180,6 +182,11 @@ fun DownloadsListContent(
                     )
                 },
                 actions = {
+                    if (selectedTabIndex == 4 && summary.failedCount > 0) {
+                        IconButton(onClick = onRetryAllFailed) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Retry All Failed")
+                        }
+                    }
                     if (summary.completedCount > 0) {
                         IconButton(onClick = onClearCompleted) {
                             Icon(Icons.Default.DeleteSweep, contentDescription = "Clear Completed")
@@ -248,7 +255,21 @@ fun DownloadsListContent(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Row {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (selectedTabIndex == 4 && summary.failedCount > 0) {
+                        FilledTonalButton(
+                            onClick = onRetryAllFailed,
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Retry All Failed", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                     if (summary.activeCount > 0) {
                         TextButton(onClick = onPauseAll) {
                             Icon(Icons.Default.Pause, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -358,6 +379,7 @@ private fun DownloadsListLightPreview() {
             onPauseAll = {},
             onResumeAll = {},
             onClearCompleted = {},
+            onRetryAllFailed = {},
             onPauseDownload = {},
             onResumeDownload = {},
             onCancelDownload = {},
@@ -401,6 +423,7 @@ private fun DownloadsListDarkPreview() {
             onPauseAll = {},
             onResumeAll = {},
             onClearCompleted = {},
+            onRetryAllFailed = {},
             onPauseDownload = {},
             onResumeDownload = {},
             onCancelDownload = {},

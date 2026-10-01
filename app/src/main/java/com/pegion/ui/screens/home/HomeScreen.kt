@@ -19,6 +19,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -504,6 +505,35 @@ fun GlobalSpeedHeroCard(
         ),
         label = "IconPulse"
     )
+    val shimmerOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 800f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "HeroShimmer"
+    )
+
+    val heroGradient = if (isDownloading) {
+        Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.primaryContainer,
+                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.85f),
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.95f),
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+            ),
+            start = Offset(shimmerOffset, 0f),
+            end = Offset(shimmerOffset + 500f, 500f)
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.primaryContainer,
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
+            )
+        )
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -511,20 +541,17 @@ fun GlobalSpeedHeroCard(
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+        border = BorderStroke(
+            1.2.dp,
+            if (isDownloading) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            else MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer,
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f)
-                        )
-                    )
-                )
+                .background(heroGradient)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 Row(

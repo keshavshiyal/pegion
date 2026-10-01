@@ -264,6 +264,14 @@ class HomeViewModel(
         }
     }
 
+    fun retryAllFailed() {
+        viewModelScope.launch {
+            val all = repository.allDownloads.first()
+            all.filter { it.status == DownloadStatus.FAILED }
+                .forEach { repository.retryDownload(it.id) }
+        }
+    }
+
     companion object {
         fun provideFactory(
             repository: DownloadRepository,
