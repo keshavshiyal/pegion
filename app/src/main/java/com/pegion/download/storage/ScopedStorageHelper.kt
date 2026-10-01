@@ -40,7 +40,11 @@ object ScopedStorageHelper {
         // Try file extension lookup
         val extension = file.extension.lowercase()
         if (extension.isNotBlank()) {
-            val mimeFromExt = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+            val mimeFromExt = try {
+                MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+            } catch (_: Throwable) {
+                null
+            }
             if (!mimeFromExt.isNullOrBlank()) {
                 return mimeFromExt
             }
