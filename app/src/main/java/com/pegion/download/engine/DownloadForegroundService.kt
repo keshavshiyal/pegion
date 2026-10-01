@@ -115,7 +115,7 @@ class DownloadForegroundService : Service() {
 
                 if (!prefs.notificationsEnabled) {
                     clearAllActiveNotifications()
-                    return@collect
+                    return@collectLatest
                 }
 
                 for (item in activeEntities) {
