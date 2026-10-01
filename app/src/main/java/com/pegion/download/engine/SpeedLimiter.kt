@@ -5,38 +5,42 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * Thread-safe bandwidth throttle supporting concurrent multi-segment workers.
+ * Thread-safe, high-precision Token Bucket rate limiter for parallel multi-segment downloads.
+ * Distributes bandwidth smoothly across concurrent workers without starvation, jitter, or burst stutter.
  */
 class SpeedLimiter(var bytesPerSecond: Long = 0L) {
 
     private val mutex = Mutex()
-    private var bytesTransferredThisSecond: Long = 0L
-    private var lastResetTime: Long = System.currentTimeMillis()
+    private var availableTokens: Double = 0.0
+    private var lastTokenTime: Long = System.currentTimeMillis()
 
     suspend fun throttle(bytesCount: Int) {
-        if (bytesPerSecond <= 0) return
+        val limit = bytesPerSecond
+        if (limit <= 0) return
 
-        var sleepTime = 0L
+        var delayMs = 0L
+
         mutex.withLock {
             val now = System.currentTimeMillis()
-            val elapsed = now - lastResetTime
+            val elapsedMs = (now - lastTokenTime).coerceAtLeast(0L)
+            lastTokenTime = now
 
-            if (elapsed >= 1000) {
-                bytesTransferredThisSecond = 0
-                lastResetTime = now
-            }
+            // Replenish tokens based on elapsed time (max burst = 1 second worth of tokens)
+            val newTokens = (elapsedMs * limit.toDouble()) / 1000.0
+            availableTokens = (availableTokens + newTokens).coerceAtMost(limit.toDouble())
 
-            bytesTransferredThisSecond += bytesCount
+            // Deduct tokens
+            availableTokens -= bytesCount
 
-            if (bytesTransferredThisSecond >= bytesPerSecond) {
-                sleepTime = 1000 - elapsed
-                bytesTransferredThisSecond = 0
-                lastResetTime = System.currentTimeMillis()
+            if (availableTokens < 0) {
+                // Compute required wait time to replenish deficit
+                val deficit = -availableTokens
+                delayMs = ((deficit * 1000.0) / limit.toDouble()).toLong().coerceIn(1L, 2000L)
             }
         }
 
-        if (sleepTime > 0) {
-            delay(sleepTime)
+        if (delayMs > 0) {
+            delay(delayMs)
         }
     }
 }

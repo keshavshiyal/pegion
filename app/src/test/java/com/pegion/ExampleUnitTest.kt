@@ -111,6 +111,15 @@ class ExampleUnitTest {
     }
 
     @Test
+    fun speed_limiter_throttles_when_limit_is_exceeded() = runBlocking {
+        val limiter = SpeedLimiter(bytesPerSecond = 100 * 1024L)
+        val start = System.currentTimeMillis()
+        limiter.throttle(150 * 1024)
+        val elapsed = System.currentTimeMillis() - start
+        assertTrue("Expected delay >= 300ms but was ${elapsed}ms", elapsed >= 300)
+    }
+
+    @Test
     fun mime_type_resolution_handles_known_extensions() {
         assertEquals("application/vnd.android.package-archive", com.pegion.download.storage.ScopedStorageHelper.resolveMimeType(java.io.File("app-release.apk")))
         assertEquals("video/x-matroska", com.pegion.download.storage.ScopedStorageHelper.resolveMimeType(java.io.File("movie.mkv")))

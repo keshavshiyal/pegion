@@ -75,6 +75,23 @@ class DownloadEngine(
         .followSslRedirects(true)
         .build()
 
+    // Dedicated Multi-TCP Turbo Client for parallel segment workers:
+    // Exclusively uses HTTP_1_1 to guarantee separate, concurrent TCP socket connections.
+    // This multiplies bandwidth across independent TCP congestion windows and bypasses single-stream ISP throttling.
+    private val segmentOkHttpClient: OkHttpClient = OkHttpClient.Builder()
+        .dispatcher(Dispatcher().apply {
+            maxRequests = 128
+            maxRequestsPerHost = 32
+        })
+        .connectionPool(ConnectionPool(32, 2, TimeUnit.MINUTES))
+        .protocols(listOf(Protocol.HTTP_1_1))
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .retryOnConnectionFailure(true)
+        .build()
+
     init {
         // Auto-pause / resume based on network & battery conditions
         engineScope.launch {
@@ -482,14 +499,17 @@ class DownloadEngine(
 
         // In-memory atomic segment trackers
         val liveSegments = ConcurrentHashMap<Int, DownloadSegment>()
+        val segmentDownloadedMap = ConcurrentHashMap<Int, AtomicLong>()
         for (seg in existingSegments) {
-            liveSegments[seg.segmentIndex] = DownloadSegment(
+            val initialSeg = DownloadSegment(
                 segmentIndex = seg.segmentIndex,
                 startByte = seg.startByte,
                 endByte = seg.endByte,
                 downloadedBytes = seg.downloadedBytes,
                 isFinished = seg.isFinished
             )
+            liveSegments[seg.segmentIndex] = initialSeg
+            segmentDownloadedMap[seg.segmentIndex] = AtomicLong(seg.downloadedBytes)
         }
 
         val speedHistory = speedHistoryMap.getOrPut(downloadId) { mutableListOf() }
@@ -505,7 +525,22 @@ class DownloadEngine(
                 val elapsed = (now - lastTickTime).coerceAtLeast(1L)
                 val bytesSince = transferredSinceLastTick.getAndSet(0L)
                 val currentSpeed = (bytesSince * 1000) / elapsed
-                val totalDownloaded = liveSegments.values.sumOf { it.downloadedBytes }
+
+                val segmentList = existingSegments.map { seg ->
+                    val downloaded = segmentDownloadedMap[seg.segmentIndex]?.get() ?: seg.downloadedBytes
+                    val isFinished = downloaded >= (seg.endByte - seg.startByte + 1)
+                    val updatedSeg = DownloadSegment(
+                        segmentIndex = seg.segmentIndex,
+                        startByte = seg.startByte,
+                        endByte = seg.endByte,
+                        downloadedBytes = downloaded,
+                        isFinished = isFinished
+                    )
+                    liveSegments[seg.segmentIndex] = updatedSeg
+                    updatedSeg
+                }.sortedBy { it.segmentIndex }
+
+                val totalDownloaded = segmentList.sumOf { it.downloadedBytes }
 
                 val eta = if (currentSpeed > 0 && contentLength > 0) {
                     ((contentLength - totalDownloaded) / currentSpeed).coerceAtLeast(0L)
@@ -518,8 +553,6 @@ class DownloadEngine(
                 } else {
                     0f
                 }
-
-                val segmentList = liveSegments.values.sortedBy { it.segmentIndex }
 
                 // Hot in-memory update
                 updateLiveStats(
@@ -596,7 +629,8 @@ class DownloadEngine(
                             .header("Range", "bytes=$currentOffset-${segEntity.endByte}")
                             .build()
 
-                        val response = okHttpClient.newCall(segRequest).execute()
+                        // Use dedicated Multi-TCP Turbo Client with HTTP_1_1 separate sockets
+                        val response = segmentOkHttpClient.newCall(segRequest).execute()
                         if (!response.isSuccessful || response.code != 206) {
                             val code = response.code
                             response.close()
@@ -605,7 +639,7 @@ class DownloadEngine(
 
                         val body = response.body ?: throw java.io.IOException("Empty segment body")
                         val inputStream: InputStream = body.byteStream()
-                        val buffer = ByteArray(64 * 1024) // 64KB buffer for high throughput
+                        val buffer = ByteArray(128 * 1024) // 128KB buffer for ultra-high throughput
 
                         RandomAccessFile(targetFile, "rw").use { raf ->
                             raf.seek(currentOffset)
@@ -619,25 +653,22 @@ class DownloadEngine(
                                 raf.write(buffer, 0, bytesRead)
                                 segDownloaded += bytesRead
                                 transferredSinceLastTick.addAndGet(bytesRead.toLong())
+                                segmentDownloadedMap[segEntity.segmentIndex]?.set(segDownloaded)
 
                                 if (effectiveLimitBytesPerSec > 0) {
                                     speedLimiter.throttle(bytesRead)
                                 }
-
-                                val isFinished = segDownloaded >= (segEntity.endByte - segEntity.startByte + 1)
-                                liveSegments[segEntity.segmentIndex] = DownloadSegment(
-                                    segmentIndex = segEntity.segmentIndex,
-                                    startByte = segEntity.startByte,
-                                    endByte = segEntity.endByte,
-                                    downloadedBytes = segDownloaded,
-                                    isFinished = isFinished
-                                )
                             }
                         }
                         inputStream.close()
                         response.close()
 
                         if (segDownloaded >= (segEntity.endByte - segEntity.startByte + 1)) {
+                            segmentDownloadedMap[segEntity.segmentIndex]?.set(segDownloaded)
+                            liveSegments[segEntity.segmentIndex] = liveSegments[segEntity.segmentIndex]!!.copy(
+                                downloadedBytes = segDownloaded,
+                                isFinished = true
+                            )
                             success = true
                         }
                     } catch (e: CancellationException) {

@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.io.File
@@ -94,7 +95,7 @@ class DownloadForegroundService : Service() {
                 prefsRepo.userPreferencesFlow
             ) { statsMap, activeEntities, prefs ->
                 Triple(statsMap, activeEntities, prefs)
-            }.collect { (statsMap, activeEntities, prefs) ->
+            }.collectLatest { (statsMap, activeEntities, prefs) ->
                 val hasActive = statsMap.isNotEmpty() || activeEntities.isNotEmpty()
 
                 if (!hasActive) {
@@ -105,7 +106,7 @@ class DownloadForegroundService : Service() {
                         releaseWakeLock()
                         stopForeground(STOP_FOREGROUND_REMOVE)
                         stopSelf()
-                        return@collect
+                        return@collectLatest
                     }
                 }
 

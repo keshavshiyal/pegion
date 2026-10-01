@@ -416,6 +416,7 @@ fun HomeScreen(
                             Toast.makeText(context, "URL copied to clipboard", Toast.LENGTH_SHORT).show()
                         },
                         segments = liveStats[download.id]?.segments,
+                        liveStats = liveStats[download.id],
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
                 }

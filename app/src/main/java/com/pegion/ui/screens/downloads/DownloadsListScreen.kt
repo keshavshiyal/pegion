@@ -295,7 +295,8 @@ fun DownloadsListContent(
                                 (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(clip)
                                 Toast.makeText(context, "URL copied to clipboard", Toast.LENGTH_SHORT).show()
                             },
-                            segments = liveStats[download.id]?.segments
+                            segments = liveStats[download.id]?.segments,
+                            liveStats = liveStats[download.id]
                         )
                     }
                 }

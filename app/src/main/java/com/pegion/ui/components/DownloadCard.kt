@@ -67,6 +67,7 @@ import com.pegion.download.model.ChecksumType
 import com.pegion.download.model.DownloadPriority
 import com.pegion.download.model.DownloadSegment
 import com.pegion.download.model.DownloadStatus
+import com.pegion.download.model.LiveDownloadStats
 import com.pegion.ui.theme.AppThemeMode
 import com.pegion.ui.theme.PegionTheme
 import com.pegion.ui.theme.StatusCompleted
@@ -79,7 +80,6 @@ import com.pegion.ui.theme.StatusPaused
 import com.pegion.ui.theme.StatusPausedContainer
 import com.pegion.ui.theme.StatusQueued
 import com.pegion.ui.theme.StatusQueuedContainer
-import java.io.File
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -96,12 +96,48 @@ fun DownloadCard(
     onShare: () -> Unit,
     onCopyUrl: () -> Unit,
     modifier: Modifier = Modifier,
-    segments: List<DownloadSegment>? = null
+    segments: List<DownloadSegment>? = null,
+    liveStats: LiveDownloadStats? = null
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
+    val currentSpeed = if (download.status == DownloadStatus.DOWNLOADING) {
+        liveStats?.speed ?: download.speed
+    } else {
+        0L
+    }
+
+    val currentEta = if (download.status == DownloadStatus.DOWNLOADING) {
+        liveStats?.eta ?: download.eta
+    } else {
+        0L
+    }
+
+    val effectiveDownloaded = when {
+        download.status == DownloadStatus.COMPLETED -> {
+            if (download.fileSize > 0) download.fileSize else download.downloadedBytes
+        }
+        liveStats != null && liveStats.downloadedBytes > 0 -> liveStats.downloadedBytes
+        else -> download.downloadedBytes
+    }
+
+    val effectiveTotal = when {
+        download.fileSize > 0 -> download.fileSize
+        liveStats != null && liveStats.fileSize > 0 -> liveStats.fileSize
+        else -> 0L
+    }
+
+    val currentProgress = when {
+        download.status == DownloadStatus.COMPLETED -> 100f
+        effectiveTotal > 0 -> (effectiveDownloaded.toFloat() / effectiveTotal.toFloat() * 100f).coerceIn(0f, 100f)
+        liveStats != null && liveStats.progress > 0f -> liveStats.progress
+        else -> download.progress
+    }
+
+    val activeSegments = liveStats?.segments?.takeIf { it.isNotEmpty() } ?: segments
+
     val animatedProgress by animateFloatAsState(
-        targetValue = (download.progress / 100f).coerceIn(0f, 1f),
+        targetValue = (currentProgress / 100f).coerceIn(0f, 1f),
         animationSpec = tween(durationMillis = 350),
         label = "progress"
     )
@@ -249,7 +285,7 @@ fun DownloadCard(
 
             // Thicker, expressive progress indicator (Segmented or Linear)
             if (download.status != DownloadStatus.COMPLETED) {
-                if (segments != null && segments.isNotEmpty() && (download.status == DownloadStatus.DOWNLOADING || download.status == DownloadStatus.PAUSED)) {
+                if (activeSegments != null && activeSegments.isNotEmpty() && (download.status == DownloadStatus.DOWNLOADING || download.status == DownloadStatus.PAUSED)) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -258,7 +294,7 @@ fun DownloadCard(
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        segments.forEach { seg ->
+                        activeSegments.forEach { seg ->
                             val segProgress = (seg.progress / 100f).coerceIn(0f, 1f)
                             Box(
                                 modifier = Modifier
@@ -304,23 +340,6 @@ fun DownloadCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                val diskLength = remember(download.filePath, download.status) {
-                    val f = File(download.filePath)
-                    if (f.exists()) f.length() else 0L
-                }
-                val effectiveTotal = when {
-                    download.fileSize > 0 -> download.fileSize
-                    download.downloadedBytes > 0 -> download.downloadedBytes
-                    diskLength > 0 -> diskLength
-                    else -> 0L
-                }
-                val effectiveDownloaded = when {
-                    download.downloadedBytes > 0 -> download.downloadedBytes
-                    diskLength > 0 -> diskLength
-                    download.fileSize > 0 -> download.fileSize
-                    else -> 0L
-                }
-
                 val sizeText = when {
                     download.status == DownloadStatus.COMPLETED -> {
                         if (effectiveTotal > 0) formatBytes(effectiveTotal) else formatBytes(effectiveDownloaded)
@@ -334,7 +353,7 @@ fun DownloadCard(
                 val progressText = if (download.status == DownloadStatus.COMPLETED) {
                     "100%"
                 } else if (effectiveTotal > 0) {
-                    "%.1f%%".format((effectiveDownloaded.toFloat() / effectiveTotal.toFloat() * 100f).coerceIn(0f, 100f))
+                    "%.1f%%".format(currentProgress)
                 } else {
                     "—"
                 }
@@ -348,18 +367,18 @@ fun DownloadCard(
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    if (download.status == DownloadStatus.DOWNLOADING && download.speed > 0) {
+                    if (download.status == DownloadStatus.DOWNLOADING && currentSpeed > 0) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            if (segments != null && segments.isNotEmpty()) {
+                            if (activeSegments != null && activeSegments.isNotEmpty()) {
                                 Surface(
                                     shape = RoundedCornerShape(4.dp),
                                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
                                 ) {
                                     Text(
-                                        text = "${segments.size}T",
+                                        text = "${activeSegments.size}T",
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, fontSize = 9.sp),
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
@@ -367,7 +386,7 @@ fun DownloadCard(
                                 }
                             }
                             Text(
-                                text = "${formatSpeed(download.speed)} • ETA ${formatEta(download.eta)}",
+                                text = "${formatSpeed(currentSpeed)} • ETA ${formatEta(currentEta)}",
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                                 color = statusFgColor,
                                 maxLines = 1,
