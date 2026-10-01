@@ -303,7 +303,7 @@ fun AddDownloadDialog(
                                         modifier = Modifier.size(14.dp)
                                     )
                                     Text(
-                                        text = "Parallel 4–6x (Resumable)",
+                                        text = "Multi-TCP Turbo (Resumable)",
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onTertiaryContainer
                                     )

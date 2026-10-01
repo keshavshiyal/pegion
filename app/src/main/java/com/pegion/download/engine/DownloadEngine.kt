@@ -77,13 +77,13 @@ class DownloadEngine(
 
     // Dedicated Multi-TCP Turbo Client for parallel segment workers:
     // Exclusively uses HTTP_1_1 to guarantee separate, concurrent TCP socket connections.
-    // This multiplies bandwidth across independent TCP congestion windows and bypasses single-stream ISP throttling.
+    // Supports up to 256 concurrent requests and 64 pooled connections for multi-stream downloads.
     private val segmentOkHttpClient: OkHttpClient = OkHttpClient.Builder()
         .dispatcher(Dispatcher().apply {
-            maxRequests = 128
-            maxRequestsPerHost = 32
+            maxRequests = 256
+            maxRequestsPerHost = 64
         })
-        .connectionPool(ConnectionPool(32, 2, TimeUnit.MINUTES))
+        .connectionPool(ConnectionPool(64, 3, TimeUnit.MINUTES))
         .protocols(listOf(Protocol.HTTP_1_1))
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
@@ -469,11 +469,17 @@ class DownloadEngine(
             }
         }
 
-        // Determine optimal segment count
+        // Determine optimal segment count based on file size and user preference (2 to 16 threads)
+        val configuredThreads = try {
+            preferencesRepository.userPreferencesFlow.first().threadsPerDownload.coerceIn(2, 16)
+        } catch (_: Exception) {
+            8
+        }
         val segmentCount = when {
-            contentLength >= 100 * 1024 * 1024 -> 6
-            contentLength >= 10 * 1024 * 1024 -> 4
-            else -> 2
+            contentLength >= 50 * 1024 * 1024 -> configuredThreads
+            contentLength >= 10 * 1024 * 1024 -> (configuredThreads / 2).coerceIn(2, configuredThreads)
+            contentLength >= 2 * 1024 * 1024 -> (configuredThreads / 4).coerceIn(2, configuredThreads)
+            else -> 2.coerceAtMost(configuredThreads)
         }
 
         // Load existing segments or partition file
@@ -639,7 +645,7 @@ class DownloadEngine(
 
                         val body = response.body ?: throw java.io.IOException("Empty segment body")
                         val inputStream: InputStream = body.byteStream()
-                        val buffer = ByteArray(128 * 1024) // 128KB buffer for ultra-high throughput
+                        val buffer = ByteArray(256 * 1024) // 256KB buffer for ultra-high throughput
 
                         RandomAccessFile(targetFile, "rw").use { raf ->
                             raf.seek(currentOffset)
@@ -821,7 +827,7 @@ class DownloadEngine(
         }
 
         val inputStream: InputStream = body.byteStream()
-        val buffer = ByteArray(64 * 1024)
+        val buffer = ByteArray(128 * 1024) // 128KB buffer for high-throughput single-stream download
         var bytesRead: Int
         var totalDownloaded = if (isPartial) existingBytes else 0L
 

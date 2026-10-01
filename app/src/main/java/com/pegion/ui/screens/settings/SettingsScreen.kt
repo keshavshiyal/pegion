@@ -89,6 +89,7 @@ fun SettingsScreen(
         onWifiOnlyChange = { viewModel.setWifiOnly(it) },
         onChargingOnlyChange = { viewModel.setChargingOnly(it) },
         onMaxConcurrentChange = { viewModel.setMaxConcurrent(it) },
+        onThreadsPerDownloadChange = { viewModel.setThreadsPerDownload(it) },
         onSpeedLimitChange = { viewModel.setSpeedLimitKbps(it) },
         onClipboardDetectionChange = { viewModel.setClipboardDetection(it) },
         onNotificationsEnabledChange = { viewModel.setNotificationsEnabled(it) },
@@ -219,6 +220,7 @@ fun SettingsContent(
     onWifiOnlyChange: (Boolean) -> Unit,
     onChargingOnlyChange: (Boolean) -> Unit,
     onMaxConcurrentChange: (Int) -> Unit,
+    onThreadsPerDownloadChange: (Int) -> Unit,
     onSpeedLimitChange: (Long) -> Unit,
     onClipboardDetectionChange: (Boolean) -> Unit,
     onNotificationsEnabledChange: (Boolean) -> Unit,
@@ -298,6 +300,48 @@ fun SettingsContent(
                             onValueChange = { onMaxConcurrentChange(it.toInt()) },
                             valueRange = 1f..5f,
                             steps = 3,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                    // Parallel Connections per Download
+                    Column {
+                        val threads = preferences.threadsPerDownload
+                        val threadLabel = when {
+                            threads >= 16 -> "$threads Connections (Extreme Turbo)"
+                            threads >= 10 -> "$threads Connections (High Speed)"
+                            threads >= 6 -> "$threads Connections (Balanced)"
+                            else -> "$threads Connections (Conservative)"
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    "Parallel Connections per Download",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                                )
+                                Text(
+                                    text = threadLabel,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Text(
+                                text = "$threads",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Slider(
+                            value = threads.toFloat(),
+                            onValueChange = { onThreadsPerDownloadChange(it.toInt()) },
+                            valueRange = 2f..16f,
+                            steps = 13,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -507,11 +551,13 @@ private fun SettingsScreenLightPreview() {
                 themeMode = "SYSTEM",
                 downloadFolder = "Pegion",
                 clipboardDetection = true,
-                notificationsEnabled = true
+                notificationsEnabled = true,
+                threadsPerDownload = 8
             ),
             onWifiOnlyChange = {},
             onChargingOnlyChange = {},
             onMaxConcurrentChange = {},
+            onThreadsPerDownloadChange = {},
             onSpeedLimitChange = {},
             onClipboardDetectionChange = {},
             onNotificationsEnabledChange = {},
@@ -536,11 +582,13 @@ private fun SettingsScreenDarkPreview() {
                 themeMode = "DARK",
                 downloadFolder = "Pegion",
                 clipboardDetection = true,
-                notificationsEnabled = true
+                notificationsEnabled = true,
+                threadsPerDownload = 12
             ),
             onWifiOnlyChange = {},
             onChargingOnlyChange = {},
             onMaxConcurrentChange = {},
+            onThreadsPerDownloadChange = {},
             onSpeedLimitChange = {},
             onClipboardDetectionChange = {},
             onNotificationsEnabledChange = {},

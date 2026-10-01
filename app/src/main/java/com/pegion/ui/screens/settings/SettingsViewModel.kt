@@ -56,6 +56,10 @@ class SettingsViewModel(
         viewModelScope.launch { preferencesRepository.setNotificationsEnabled(enabled) }
     }
 
+    fun setThreadsPerDownload(threads: Int) {
+        viewModelScope.launch { preferencesRepository.setThreadsPerDownload(threads) }
+    }
+
     suspend fun exportJson(): String {
         return preferencesRepository.exportJson(preferencesRepository.userPreferencesFlow.first())
     }

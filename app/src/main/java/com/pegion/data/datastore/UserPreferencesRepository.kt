@@ -23,7 +23,8 @@ data class UserPreferences(
     val themeMode: String = "SYSTEM",
     val downloadFolder: String = "Pegion",
     val clipboardDetection: Boolean = true,
-    val notificationsEnabled: Boolean = true
+    val notificationsEnabled: Boolean = true,
+    val threadsPerDownload: Int = 8 // 2 to 16 parallel TCP threads
 )
 
 class UserPreferencesRepository(private val context: Context) {
@@ -37,6 +38,7 @@ class UserPreferencesRepository(private val context: Context) {
         val DOWNLOAD_FOLDER = stringPreferencesKey("download_folder")
         val CLIPBOARD_DETECTION = booleanPreferencesKey("clipboard_detection")
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
+        val THREADS_PER_DOWNLOAD = intPreferencesKey("threads_per_download")
     }
 
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data.map { preferences ->
@@ -48,7 +50,8 @@ class UserPreferencesRepository(private val context: Context) {
             themeMode = preferences[PreferencesKeys.THEME_MODE] ?: "SYSTEM",
             downloadFolder = preferences[PreferencesKeys.DOWNLOAD_FOLDER] ?: "Pegion",
             clipboardDetection = preferences[PreferencesKeys.CLIPBOARD_DETECTION] ?: true,
-            notificationsEnabled = preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] ?: true
+            notificationsEnabled = preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] ?: true,
+            threadsPerDownload = preferences[PreferencesKeys.THREADS_PER_DOWNLOAD] ?: 8
         )
     }
 
@@ -102,6 +105,13 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
+    suspend fun setThreadsPerDownload(threads: Int) {
+        val clamped = threads.coerceIn(2, 16)
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.THREADS_PER_DOWNLOAD] = clamped
+        }
+    }
+
     suspend fun exportJson(prefs: UserPreferences): String {
         val json = JSONObject()
         json.put("wifiOnly", prefs.wifiOnly)
@@ -112,6 +122,7 @@ class UserPreferencesRepository(private val context: Context) {
         json.put("downloadFolder", prefs.downloadFolder)
         json.put("clipboardDetection", prefs.clipboardDetection)
         json.put("notificationsEnabled", prefs.notificationsEnabled)
+        json.put("threadsPerDownload", prefs.threadsPerDownload)
         return json.toString(2)
     }
 
@@ -127,6 +138,7 @@ class UserPreferencesRepository(private val context: Context) {
                 if (json.has("downloadFolder")) preferences[PreferencesKeys.DOWNLOAD_FOLDER] = json.getString("downloadFolder")
                 if (json.has("clipboardDetection")) preferences[PreferencesKeys.CLIPBOARD_DETECTION] = json.getBoolean("clipboardDetection")
                 if (json.has("notificationsEnabled")) preferences[PreferencesKeys.NOTIFICATIONS_ENABLED] = json.getBoolean("notificationsEnabled")
+                if (json.has("threadsPerDownload")) preferences[PreferencesKeys.THREADS_PER_DOWNLOAD] = json.getInt("threadsPerDownload").coerceIn(2, 16)
             }
             true
         } catch (_: Exception) {
